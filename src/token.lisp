@@ -13,7 +13,8 @@
    :token-linum
    :make-token
    :tag-equal
-   :tag-member))
+   :tag-member
+   :eof-token-p))
 (in-package :cl-lua.token)
 
 (defparameter *binary-operator-names*
@@ -36,7 +37,8 @@
   (list "and" "break" "do" "else" "elseif" "end"
         "false" "for" "function" "goto" "if" "in"
         "local" "nil" "not" "or" "repeat" "return"
-        "then" "true" "until" "while"))
+        "then" "true" "until" "while"
+        "eof"))
 
 (defparameter *tags*
   (append (list "word" "string" "number")
@@ -67,3 +69,6 @@
 
 (defun tag-member (tag1 tags)
   (member tag1 tags :test #'equal))
+
+(defun eof-token-p (token)
+  (equal (token-tag token) "eof"))

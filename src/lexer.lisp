@@ -373,10 +373,13 @@
 			exp-str
 			(lexer-linum lexer))))))
 
+(defun make-eof-token (lexer)
+  (make-token nil :tag "eof" :linum (lexer-linum lexer)))
+
 (defun lex (lexer)
   (loop
     (handler-case (skip-space-and-comment lexer)
-      (end-of-file () (return-from lex nil)))
+      (end-of-file () (return-from lex (make-eof-token lexer))))
     (let ((token (or (try-scan-word lexer)
 		     (try-scan-string lexer)
 		     (try-scan-long-string lexer)

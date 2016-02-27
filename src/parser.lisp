@@ -38,6 +38,9 @@
 (defun match-or (&rest tags)
   (some #'match-p tags))
 
+(defun eof-p ()
+  (eof-token-p *lookahead*))
+
 (defun accept (tag)
   (when (match-p tag)
     (next)))
@@ -97,7 +100,8 @@
 
 (defun parse-block ()
   (let* ((linum (token-linum *lookahead*))
-         (stats (flatten (loop :for stat := (parse-stat)
+         (stats (flatten (loop :for stat := (when (not (eof-p))
+                                              (parse-stat))
                                :while stat
                                :collect stat)))
          (retstat (if (accept "retstat")
