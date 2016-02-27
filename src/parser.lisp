@@ -476,7 +476,7 @@
         (push (list :oprand oprand) rpn))
       (case-token
         (#.(mapcar #'car *binary-operators*)
-           (let* ((token *lookahead*)
+           (let* ((token (next))
                   (op1 (token-value token)))
              (when (operator-left-assoc-p op1)
                (loop :while (and (not (null stack))
@@ -488,6 +488,8 @@
              (push (cons token nil) stack)))
         (otherwise
          (return))))
+    (dolist (elt stack)
+      (push (cons :operator elt) rpn))
     (rpn-to-ast (nreverse rpn))))
 
 (defun rpn-to-ast (rpn)
