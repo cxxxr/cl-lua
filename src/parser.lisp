@@ -501,14 +501,16 @@
         ((:operator op-token . unary-p)
          (push (if unary-p
                    (make-ast '<unary-op>
+                             :linum (token-linum op-token)
                              :name (token-value op-token)
                              :exp (pop stack))
                    (let ((right (pop stack))
                          (left (pop stack)))
                      (make-ast '<binary-op>
+                               :linum (token-linum op-token)
                                :name (token-value op-token)
                                :left left
-                               :riight right)))
+                               :right right)))
                stack))))
     (assert (length=1 stack))
     (car stack)))
