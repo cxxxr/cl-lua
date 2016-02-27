@@ -106,25 +106,21 @@
                                :collect stat)))
          (retstat (if (accept "retstat")
                       (parse-retstat)
-                      (make-ast '<void>))))
-    (make-ast '<block>
-              :linum linum
-              :stats stats
-              :retstat retstat)))
+                      (make-ast :void nil))))
+    (make-ast :block linum stats retstat)))
 
 (defun parse-retstat ()
   (let ((linum (token-linum *lookahead*)))
     (when (accept "return")
       (let ((explist
-              (when (exp-start-p)
-                (parse-explist))))
+              (if (exp-start-p)
+                  (parse-explist)
+                  (make-ast :void nil))))
         (accept ";")
-        (make-ast '<return>
-                  :linum linum
-                  :explist explist)))))
+        (make-ast :return linum explist)))))
 
 (defun parse-stat ()
-  (ecase-token
+  (case-token
     (";"
      (next)
      nil)
@@ -159,26 +155,23 @@
      (next)
      (parse-local))
     (("word" "(")
-     (parse-expr-stat))))
+     (parse-expr-stat))
+    (otherwise
+     (parse-exp))))
 
 (defun parse-label ()
   (let ((name (exact "word")))
     (exact "::")
-    (make-ast '<label>
-              :linum (token-linum name)
-              :name (token-value name))))
+    (make-ast :label (token-linum name) (token-value name))))
 
 (defun parse-break ()
   (let ((linum (token-linum *lookahead*)))
-    (make-ast '<break>
-              :linum linum)))
+    (make-ast :break linum)))
 
 (defun parse-goto ()
   (let ((linum (token-linum *lookahead*)))
     (let ((word (exact "word")))
-      (make-ast '<goto>
-                :linum linum
-                :name (token-value word)))))
+      (make-ast :goto linum (token-value word)))))
 
 (defun parse-do ()
   (prog1 (parse-block)
@@ -194,10 +187,7 @@
     (when (accept "while")
       (let* ((exp (parse-exp))
              (body (parse-do-exact)))
-        (make-ast '<while>
-                  :linum linum
-                  :body body
-                  :exp exp)))))
+        (make-ast :while linum body exp)))))
 
 (defun parse-repeat ()
   (let ((linum (token-linum *lookahead*)))
@@ -206,10 +196,7 @@
              (exp (progn
                     (exact "until")
                     (parse-exp))))
-        (make-ast '<repeat>
-                  :linum linum
-                  :body body
-                  :exp exp)))))
+        (make-ast :repeat linum body exp)))))
 
 (defun parse-if ()
   (labels ((f ()
@@ -224,11 +211,7 @@
                                  (parse-block))
                                 (t
                                  (exact "end")))))
-               (make-ast '<if>
-                         :linum linum
-                         :test test
-                         :then then
-                         :else else))))
+               (make-ast :if linum test then else))))
     (when (accept "if")
       (f))))
 
@@ -241,11 +224,7 @@
                    (accept "in"))
                (let* ((explist (parse-explist))
                       (body (parse-do-exact)))
-                 (make-ast '<generic-for>
-                           :linum linum
-                           :namelist namelist
-                           :explist explist
-                           :body body)))
+                 (make-ast :generic-for linum namelist explist body)))
               ((exact "=")
                (let* ((init (parse-exp))
                       (end (progn
@@ -253,14 +232,14 @@
                              (parse-exp)))
                       (step (if (accept ",")
                                 (parse-exp)
-                                (make-ast '<void>))))
-                 (make-ast '<for>
-                           :linum linum
-                           :name (car namelist)
-                           :init init
-                           :end end
-                           :step step
-                           :body (parse-do-exact)))))))))
+                                (make-ast :void nil))))
+                 (make-ast :for
+                           linum
+                           (car namelist)
+                           init
+                           end
+                           step
+                           (parse-do-exact)))))))))
 
 (defun parse-function ()
   (let ((linum (token-linum *lookahead*)))
@@ -270,17 +249,12 @@
         (multiple-value-bind (parlist body)
             (parse-funcbody)
           (when method-p
-            (push (make-ast '<var>
-                            :linum linum
-                            :name "self")
+            (push (make-ast :var linum "self")
                   parlist))
-          (make-ast '<assign>
-                    :linum linum
-                    :varlist (list name)
-                    :explist (make-ast '<function>
-                                       :linum linum
-                                       :parameters parlist
-                                       :body body)))))))
+          (make-ast :assign
+                    linum
+                    (list name)
+                    (make-ast :function linum parlist body)))))))
 
 (defun parse-funcname ()
   (let* ((name (exact "word"))
@@ -288,18 +262,18 @@
                       :collect (exact "word")))
          (method-name (when (accept ":")
                         (exact "word"))))
-    (let ((var (make-ast '<var>
-                         :linum (token-linum name)
-                         :name (token-value name)))
+    (let ((var (make-ast :var
+                         (token-linum name)
+                         (token-value name)))
           (names (mapcar #'(lambda (name)
-                             (make-ast '<string>
-                                       :chars (string-to-bytes (token-value name))))
+                             (make-ast :string
+                                       (string-to-bytes (token-value name))))
                          (append names (list method-name)))))
       (values (reduce #'(lambda (x y)
-                          (make-ast '<refer-table>
-                                    :linum (token-linum name)
-                                    :prefix x
-                                    :key y))
+                          (make-ast :refer-table
+                                    (token-linum name)
+                                    x
+                                    y))
                       (cons var names)
                       :from-end t)
               (if method-name t nil)))))
@@ -312,32 +286,32 @@
 
 (defun parse-local-function (linum)
   (let* ((token (exact "word"))
-         (var (make-ast '<var>
-                        :linum (token-linum token)
-                        :name (token-value token))))
+         (var (make-ast :var
+                        (token-linum token)
+                        (token-value token))))
     (multiple-value-bind (parlist body)
         (parse-funcbody)
-      (list (make-ast '<local>
-                      :linum linum
-                      :namelist (list var)
-                      :explist (make-ast '<void>))
-            (make-ast '<assign>
-                      :linum linum
-                      :varlist (list var)
-                      :explist (list (make-ast '<function>
-                                               :parameters parlist
-                                               :body body)))))))
+      (list (make-ast :local
+                      linum
+                      (list var)
+                      (make-ast :void nil))
+            (make-ast :assign
+                      linum
+                      (list var)
+                      (list (make-ast :function
+                                      :parameters parlist
+                                      :body body)))))))
 
 
 (defun parse-local-vars (linum)
   (let* ((namelist (parse-namelist))
          (explist (if (accept "=")
                       (parse-explist)
-                      (make-ast '<void>))))
-    (make-ast '<local>
-              :linum linum
-              :namelist namelist
-              :explist explist)))
+                      (make-ast :void nil))))
+    (make-ast :local
+              linum
+              namelist
+              explist)))
 
 (defun parse-expr-stat ()
   (let* ((linum (token-linum *lookahead*))
@@ -345,10 +319,10 @@
     (multiple-value-bind (match-p varlist explist)
         (suffixexp)
       (if match-p
-          (make-ast '<assign>
-                    :linum linum
-                    :varlist (cons prefixexp varlist)
-                    :explist explist)
+          (make-ast :assign
+                    linum
+                    (cons prefixexp varlist)
+                    explist)
           prefixexp))))
 
 (defun suffixexp ()
@@ -377,23 +351,21 @@
 (defun parse-parlist ()
   (let ((linum (token-linum *lookahead*)))
     (if (accept "...")
-        (make-ast '<variadic>
-                  :linum linum)
+        (make-ast :variadic linum)
         (let ((namelist (parse-namelist)))
           (cond ((accept ",")
                  (let ((linum (token-linum *lookahead*)))
                    (exact "...")
                    (append namelist
-                           (list (make-ast '<variadic>
-                                           :linum linum)))))
+                           (list (make-ast :variadic linum)))))
                 (t
                  namelist))))))
 
 (defun parse-namelist ()
   (mapcar #'(lambda (token)
-              (make-ast '<var>
-                        :linum (token-linum token)
-                        :name (token-value token)))
+              (make-ast :var
+                        (token-linum token)
+                        (token-value token)))
           (cons (exact "word")
                 (loop :while (accept ".")
                       :collect (exact "word")))))
@@ -435,26 +407,26 @@
   (ecase-token
     ("nil"
      (next)
-     (make-ast '<nil> :linum (token-linum *lookahead*)))
+     (make-ast :nil (token-linum *lookahead*)))
     ("false"
      (next)
-     (make-ast '<false> :linum (token-linum *lookahead*)))
+     (make-ast :false (token-linum *lookahead*)))
     ("true"
      (next)
-     (make-ast '<true> :linum (token-linum *lookahead*)))
+     (make-ast :true (token-linum *lookahead*)))
     ("number"
-     (prog1 (make-ast '<number>
-                      :linum (token-linum *lookahead*)
-                      :value (token-value *lookahead*))
+     (prog1 (make-ast :number
+                      (token-linum *lookahead*)
+                      (token-value *lookahead*))
        (next)))
     ("string"
-     (prog1 (make-ast '<string>
-                      :linum (token-linum *lookahead*)
-                      :chars (token-value *lookahead*))
+     (prog1 (make-ast :string
+                      (token-linum *lookahead*)
+                      (token-value *lookahead*))
        (next)))
     ("..."
-     (prog1 (make-ast '<variadic>
-                      :linum (token-linum *lookahead*))
+     (prog1 (make-ast :variadic
+                      (token-linum *lookahead*))
        (next)))
     ("function"
      (parse-functiondef))
@@ -500,17 +472,17 @@
          (push exp stack))
         ((:operator op-token . unary-p)
          (push (if unary-p
-                   (make-ast '<unary-op>
-                             :linum (token-linum op-token)
-                             :name (token-value op-token)
-                             :exp (pop stack))
+                   (make-ast :unary-op
+                             (token-linum op-token)
+                             (token-value op-token)
+                             (pop stack))
                    (let ((right (pop stack))
                          (left (pop stack)))
-                     (make-ast '<binary-op>
-                               :linum (token-linum op-token)
-                               :name (token-value op-token)
-                               :left left
-                               :right right)))
+                     (make-ast :binary-op
+                               (token-linum op-token)
+                               (token-value op-token)
+                               left
+                               right)))
                stack))))
     (assert (length=1 stack))
     (car stack)))
@@ -519,10 +491,10 @@
   (let ((linum (token-linum (exact "function"))))
     (multiple-value-bind (parlist body)
         (parse-funcbody)
-      (make-ast '<function>
-                :linum linum
-                :parameters parlist
-                :body body))))
+      (make-ast :function
+                linum
+                parlist
+                body))))
 
 (defun parse-prefixexp ()
   (ecase-token
@@ -530,9 +502,7 @@
      (let ((linum (token-linum *lookahead*))
            (name (token-value *lookahead*)))
        (parse-prefixexp-tail
-        (make-ast '<var>
-                  :linum linum
-                  :name name))))
+        (make-ast :var linum name))))
     ("("
      (next)
      (let ((exp (parse-exp)))
@@ -546,39 +516,39 @@
        (let ((exp (parse-exp)))
          (exact "]")
          (parse-prefixexp-tail
-          (make-ast '<refer-table>
-                    :linum linum
-                    :prefix x
-                    :key exp)))))
+          (make-ast :refer-table
+                    linum
+                    x
+                    exp)))))
     ("."
      (let* ((linum (token-linum (next)))
             (name (exact "word")))
        (parse-prefixexp-tail
-        (make-ast '<refer-table>
-                  :linum linum
-                  :prefix x
-                  :key (make-ast '<string>
-                                 :chars (string-to-bytes
-                                         (token-value name)))))))
+        (make-ast :refer-table
+                  linum
+                  x
+                  (make-ast :string
+                            (string-to-bytes
+                             (token-value name)))))))
     (("(" "{" "string")
      (let ((linum (token-linum *lookahead*)))
        (parse-prefixexp-tail
-        (make-ast '<call-function>
-                  :linum linum
-                  :prefix x
-                  :args (parse-args)))))
+        (make-ast :call-function
+                  linum
+                  x
+                  (parse-args)))))
     (":"
      (let* ((linum (token-linum (next)))
             (name (exact "word"))
             (args (parse-args)))
        (parse-prefixexp-tail
-        (make-ast '<call-method>
-                  :linum linum
-                  :prefix x
-                  :name (make-ast '<var>
-                                  :linum (token-linum name)
-                                  :name (token-value name))
-                  :args args))))
+        (make-ast :call-method
+                  linum
+                  x
+                  (make-ast :var
+                            (token-linum name)
+                            (token-value name))
+                  args))))
     (otherwise x)))
 
 (defun parse-args ()
@@ -592,9 +562,9 @@
     ("{"
      (list (parse-tableconstructor)))
     ("string"
-     (list (make-ast '<string>
-                     :linum (token-linum *lookahead*)
-                     :chars (token-value *lookahead*))))))
+     (list (make-ast :string
+                     (token-linum *lookahead*)
+                     (token-value *lookahead*))))))
 
 (defun parse-tableconstructor ()
   (let ((linum (token-linum *lookahead*)))
@@ -602,10 +572,10 @@
     (multiple-value-bind (fieldarray fieldpairs)
         (parse-fieldlist)
       (exact "}")
-      (make-ast '<tableconstructor>
-                :linum linum
-                :array (or fieldarray (make-ast '<void>))
-                :pairs (or fieldpairs (make-ast '<void>))))))
+      (make-ast :tableconstructor
+                linum
+                (or fieldarray (make-ast :void nil))
+                (or fieldpairs (make-ast :void nil))))))
 
 (defun parse-fieldlist ()
   (cond
@@ -640,25 +610,25 @@
              (exact "=")
              (let ((value (parse-exp)))
                (values t
-                       (make-ast '<field>
-                                 :linum linum
-                                 :key key
-                                 :value value)
+                       (make-ast :field
+                                 linum
+                                 key
+                                 value)
                        nil))))
           ((exp-start-p)
            (let ((name (accept "word")))
              (cond
                ((accept "=")
                 (let* ((exp (parse-exp))
-                       (key (make-ast '<string>
-                                      :linum (token-linum name)
-                                      :chars (string-to-bytes
-                                              (token-value name)))))
+                       (key (make-ast :string
+                                      (token-linum name)
+                                      (string-to-bytes
+                                       (token-value name)))))
                   (values t
-                          (make-ast '<field>
-                                    :linum linum
-                                    :key key
-                                    :value exp)
+                          (make-ast :field
+                                    linum
+                                    key
+                                    exp)
                           nil)))
                (t
                 (pushback name)
