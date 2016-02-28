@@ -100,30 +100,38 @@
 
 (defun parse-block ()
   (let* ((linum (token-linum *lookahead*))
-         (stats (flatten (loop :for stat := (when (not (eof-p))
-                                              (parse-stat))
-                               :while stat
-                               :collect stat)))
-         (retstat (if (accept "retstat")
+         (stats (flatten-stats
+                 (loop :for stat := (when (not (eof-p))
+                                      (parse-stat))
+                       :while stat
+                       :collect stat)))
+         (retstat (if (accept "return")
                       (parse-retstat)
                       (make-ast :void nil))))
     (make-ast :block linum stats retstat)))
 
+(defun flatten-stats (stats)
+  (loop :for stat :in stats
+        :if (eq (ast-name stat) :progn)
+          :append (ast-args stat)
+        :else
+          :if (not (eq (ast-name stat) :void))
+            :collect stat))
+
 (defun parse-retstat ()
   (let ((linum (token-linum *lookahead*)))
-    (when (accept "return")
-      (let ((explist
-              (if (exp-start-p)
-                  (parse-explist)
-                  (make-ast :void nil))))
-        (accept ";")
-        (make-ast :return linum explist)))))
+    (let ((explist
+            (if (exp-start-p)
+                (parse-explist)
+                (make-ast :void nil))))
+      (accept ";")
+      (make-ast :return linum explist))))
 
 (defun parse-stat ()
-  (ecase-token
+  (case-token
     (";"
      (next)
-     nil)
+     (make-ast :void nil))
     ("::"
      (next)
      (parse-label))
@@ -155,7 +163,8 @@
      (next)
      (parse-local))
     (("word" "(")
-     (parse-expr-stat))))
+     (parse-expr-stat))
+    (otherwise nil)))
 
 (defun parse-label ()
   (let ((name (exact "word")))
