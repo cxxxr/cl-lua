@@ -2,12 +2,14 @@
 (defpackage :cl-lua.lexer
   (:use
    :cl
+   :alexandria
    :cl-lua.token
    :cl-lua.error
    :cl-lua.util)
   (:export
-   :make-lexer
    :lexer-error
+   :make-lexer
+   :with-lexer-from-string
    :lex
    :lex-from-string))
 (in-package :cl-lua.lexer)
@@ -23,6 +25,13 @@
 		       :line ""
 		       :linum 0
 		       :column 0))
+
+(defmacro with-lexer-from-string ((lexer string) &body body)
+  (check-type lexer symbol)
+  (with-gensyms (gstream)
+    `(with-input-from-string (,gstream ,string)
+       (let ((,lexer (make-lexer ,gstream)))
+         ,@body))))
 
 (defun lexer-error (lexer string &rest args)
   (error 'lexer-error
@@ -66,9 +75,7 @@
                                    body)))))
 
 (defmacro with-regex-groups ((vars string start-groups end-groups) &body body)
-  (let ((gstring (gensym "STRING"))
-        (gstart-groups (gensym "START-GROUPS"))
-        (gend-groups (gensym "END-GROUPS")))
+  (with-gensyms (gstring gstart-groups gend-groups)
     `(let ((,gstring ,string)
            (,gstart-groups ,start-groups)
            (,gend-groups ,end-groups))
