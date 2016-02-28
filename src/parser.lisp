@@ -401,8 +401,8 @@
 
 (defun priority (op unary-p)
   (if unary-p
-      (second (assoc op *unary-operators*))
-      (second (assoc op *binary-operators*))))
+      (second (assoc op *unary-operators* :test #'equal))
+      (second (assoc op *binary-operators* :test #'equal))))
 
 (defun exp-start-p ()
   (match-or "nil" "false" "true" "number" "string"
