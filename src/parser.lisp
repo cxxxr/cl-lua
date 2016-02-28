@@ -120,7 +120,7 @@
         (make-ast :return linum explist)))))
 
 (defun parse-stat ()
-  (case-token
+  (ecase-token
     (";"
      (next)
      nil)
@@ -155,9 +155,7 @@
      (next)
      (parse-local))
     (("word" "(")
-     (parse-expr-stat))
-    (otherwise
-     (parse-exp))))
+     (parse-expr-stat))))
 
 (defun parse-label ()
   (let ((name (exact "word")))
