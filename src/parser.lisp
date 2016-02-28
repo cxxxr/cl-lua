@@ -72,7 +72,7 @@
   (defun case-token-collect-tags (clauses)
     (mapcan #'(lambda (c)
                 (etypecase (car c)
-                  (cons (car c))
+                  (cons (copy-list (car c)))
                   (string (list (car c)))))
             clauses)))
 
@@ -406,7 +406,7 @@
 
 (defun exp-start-p ()
   (match-or "nil" "false" "true" "number" "string"
-            "..." "function" "word" "(" "{"))
+            "..." "function" "word" "(" "{" "not" "#" "-" "~"))
 
 (defun parse-exp-oprand ()
   (ecase-token
@@ -506,6 +506,7 @@
     ("word"
      (let ((linum (token-linum *lookahead*))
            (name (token-value *lookahead*)))
+       (next)
        (parse-prefixexp-tail
         (make-ast :var linum name))))
     ("("
@@ -567,9 +568,10 @@
     ("{"
      (list (parse-tableconstructor)))
     ("string"
-     (list (make-ast :string
-                     (token-linum *lookahead*)
-                     (token-value *lookahead*))))))
+     (let ((linum (token-linum *lookahead*))
+           (value (token-value *lookahead*)))
+       (next)
+       (list (make-ast :string linum value))))))
 
 (defun parse-tableconstructor ()
   (let ((linum (token-linum *lookahead*)))
@@ -592,7 +594,7 @@
        (loop
          (multiple-value-bind (match-p field serial-p)
              (parse-field)
-           (cond (match-p
+           (cond ((not match-p)
                   (return))
                  (serial-p
                   (push field fieldarray))
@@ -601,7 +603,8 @@
          (if (match-or "," ";")
              (next)
              (return)))
-       (values fieldarray fieldpairs)))))
+       (values (nreverse fieldarray)
+               (nreverse fieldpairs))))))
 
 (defun field-start-p ()
   (or (match-p "[")
