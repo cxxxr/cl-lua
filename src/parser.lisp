@@ -289,16 +289,18 @@
                         (token-value token))))
     (multiple-value-bind (parlist body)
         (parse-funcbody)
-      (list (make-ast :local
-                      linum
-                      (list var)
-                      (make-ast :void nil))
-            (make-ast :assign
-                      linum
-                      (list var)
-                      (list (make-ast :function
-                                      :parameters parlist
-                                      :body body)))))))
+      (make-ast :progn
+                linum
+                (make-ast :local
+                          linum
+                          (list var)
+                          (make-ast :void nil))
+                (make-ast :assign
+                          linum
+                          (list var)
+                          (list (make-ast :function
+                                          :parameters parlist
+                                          :body body)))))))
 
 
 (defun parse-local-vars (linum)
