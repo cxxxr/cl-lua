@@ -33,7 +33,7 @@
               (lex *lexer*)))))
 
 (defun match-p (tag)
-  (equal (token-tag *lookahead*) tag))
+  (tag-equal (token-tag *lookahead*) tag))
 
 (defun match-or (&rest tags)
   (some #'match-p tags))
@@ -47,7 +47,7 @@
 
 (defun exact (expected-tag)
   (let ((tag (token-tag *lookahead*)))
-    (unless (equal tag expected-tag)
+    (unless (tag-equal tag expected-tag)
       (parser-error *lookahead*
                     expected-tag
                     tag))

@@ -68,7 +68,7 @@
   (equal tag1 tag2))
 
 (defun tag-member (tag1 tags)
-  (member tag1 tags :test #'equal))
+  (member tag1 tags :test #'tag-equal))
 
 (defun eof-token-p (token)
-  (equal (token-tag token) "eof"))
+  (tag-equal (token-tag token) "eof"))
