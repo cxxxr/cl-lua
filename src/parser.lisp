@@ -25,7 +25,8 @@
          :linum (token-linum token)))
 
 (defun pushback (token)
-  (push token *lookahead-undo-stack*))
+  (push *lookahead* *lookahead-undo-stack*)
+  (setf *lookahead* token))
 
 (defun next ()
   (prog1 *lookahead*
@@ -626,12 +627,11 @@
           ((exp-start-p)
            (let ((name (accept "word")))
              (cond
-               ((accept "=")
+               ((and name (accept "="))
                 (let* ((exp (parse-exp))
-                       (key (make-ast :string
+                       (key (make-ast :var
                                       (token-linum name)
-                                      (string-to-bytes
-                                       (token-value name)))))
+                                      (token-value name))))
                   (values t
                           (make-ast :field
                                     linum
@@ -639,7 +639,8 @@
                                     exp)
                           nil)))
                (t
-                (pushback name)
+                (when name
+                  (pushback name))
                 (values t (parse-exp) t))))))))
 
 (defun parse (*lexer*)

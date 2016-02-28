@@ -107,6 +107,23 @@
             ((:tableconstructor ((:number 1) (:number 2) (:number 3))
               (:void)))))
           (:void)))
+  (test "a = { [f(1)] = g; \"x\", \"y\"; x = 1, f(x), [30] = 23; 45 }"
+        `(:block
+             ((:assign
+               ((:var "a"))
+               ((:tableconstructor
+                 ((:string ,(cl-lua.util:string-to-bytes "x"))
+                  (:string ,(cl-lua.util:string-to-bytes "y"))
+                  (:call-function (:var "f") ((:var "x")))
+                  (:number 45))
+                 ((:field (:call-function (:var "f") ((:number 1)))
+                          (:var "g"))
+                  (:field (:var "x")
+                          (:number 1))
+                  (:field (:number 30)
+                          (:number 23)))))))
+           (:void))
+        #'equalp)
   (test "::foo::"
         '(:block
           ((:label "foo"))
