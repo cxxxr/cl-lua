@@ -162,7 +162,7 @@
 		    :start-anchor
 		    (:group
 		     (:alternation
-		      . #.(sort (copy-list *operator-names*)
+		      . #.(sort (copy-list *operator-tags*)
 				#'>
 				:key #'length)))))
     (when s
@@ -179,7 +179,7 @@
       (setf (lexer-column lexer) e)
       (let ((str (subseq (lexer-line lexer) s e)))
 	(make-token str
-		    :tag (if (tag-member str *keyword-names*)
+		    :tag (if (tag-member str *keyword-tags*)
                              str
                              "word")
 		    :linum (lexer-linum lexer))))))

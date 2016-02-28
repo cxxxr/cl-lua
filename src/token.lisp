@@ -2,10 +2,8 @@
 (defpackage :cl-lua.token
   (:use :cl)
   (:export
-   :*binary-operator-names*
-   :*unary-operator-names*
-   :*operator-names*
-   :*keyword-names*
+   :*operator-tags*
+   :*keyword-tags*
    :*tags*
    :token
    :token-value
@@ -17,23 +15,14 @@
    :eof-token-p))
 (in-package :cl-lua.token)
 
-(defparameter *binary-operator-names*
-  (list "+" "-" "*" "/" "//" "^" "%"
-        "&" "~" "|" ">>" "<<" ".."
-        "<" "<=" ">" ">=" "==" "~="
-        "and" "or"))
-
-(defparameter *unary-operator-names*
-  (list "-" "not" "#" "~"))
-
-(defparameter *operator-names*
+(defparameter *operator-tags*
   (sort (list "+" "-" "*" "/" "%" "^" "#" "&" "~" "|" "<<" ">>" "//"
               "==" "~=" "<=" ">=" "<" ">" "=" "(" ")" "{" "}"
               "[" "]" "::" ";" ":" "," "." ".." "...")
         #'>
         :key #'length))
 
-(defparameter *keyword-names*
+(defparameter *keyword-tags*
   (list "and" "break" "do" "else" "elseif" "end"
         "false" "for" "function" "goto" "if" "in"
         "local" "nil" "not" "or" "repeat" "return"
@@ -42,8 +31,8 @@
 
 (defparameter *tags*
   (append (list "word" "string" "number")
-          *operator-names*
-          *keyword-names*))
+          *operator-tags*
+          *keyword-tags*))
 
 (defstruct (token (:constructor make-token-internal))
   (value nil :read-only t)

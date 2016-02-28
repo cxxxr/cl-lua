@@ -31,22 +31,22 @@
 (defun operators-test ()
   (dolist (op '("..." "<<" ">>" "//" "==" "~=" "<=" ">=" "::" ".." "+" "-" "*" "/" "%" "^" "#"
                 "&" "~" "|" "<" ">" "=" "(" ")" "{" "}" "[" "]" ";" ":" "," "."))
-    (prove:is (if (tag-member op *operator-names*)
+    (prove:is (if (tag-member op *operator-tags*)
                   t
                   nil)
               t))
   (apply #'test
-         (format nil "~{~a ~}" *operator-names*)
+         (format nil "~{~a ~}" *operator-tags*)
          (mapcar #'(lambda (op)
                      (make-token op :tag op :linum 1))
-                 *operator-names*)))
+                 *operator-tags*)))
 
 (defun word-test ()
   (apply #'test
-	 (format nil "~{~a ~}" *keyword-names*)
+	 (format nil "~{~a ~}" *keyword-tags*)
 	 (mapcar #'(lambda (word)
 		     (make-token word :tag word :linum 1))
-		 *keyword-names*))
+		 *keyword-tags*))
   (let ((names (list "abc" "ABC" "aBc" "Abc" "_xyz" "_10" "_d10" "a10")))
     (apply #'test
 	   (apply #'make-lines names)
