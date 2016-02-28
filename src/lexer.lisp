@@ -7,6 +7,7 @@
    :cl-lua.util)
   (:export
    :make-lexer
+   :lexer-error
    :lex
    :lex-from-string))
 (in-package :cl-lua.lexer)
@@ -394,5 +395,5 @@
   (with-input-from-string (stream string)
     (loop :with lexer := (make-lexer stream)
 	  :for token := (lex lexer)
-	  :while token
+	  :while (not (eof-token-p token))
 	  :collect token)))
