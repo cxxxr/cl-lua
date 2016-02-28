@@ -9,7 +9,8 @@
    :cl-lua.ast
    :alexandria)
   (:export
-   :parse))
+   :parse
+   :parse-from-string))
 (in-package :cl-lua.parser)
 
 (defvar *lexer*)
@@ -92,11 +93,6 @@
            (t (parser-error *lookahead*
                             ',tags
                             (token-tag *lookahead*))))))
-
-(defun parse (*lexer*)
-  (let ((*lookahead-undo-stack*))
-    (next)
-    (parse-block)))
 
 (defun parse-block ()
   (let* ((linum (token-linum *lookahead*))
@@ -642,3 +638,12 @@
                (t
                 (pushback name)
                 (values t (parse-exp) t))))))))
+
+(defun parse (*lexer*)
+  (let ((*lookahead-undo-stack*))
+    (next)
+    (parse-block)))
+
+(defun parse-from-string (string)
+  (with-lexer-from-string (lexer string)
+    (parse lexer)))
