@@ -1,6 +1,6 @@
 (in-package :cl-user)
 (defpackage :cl-lua.error
-  (:use :cl)
+  (:use :cl :cl-lua.token)
   (:export
    :lua-error
    :lexer-error
@@ -25,13 +25,22 @@
              (lexer-error-near condition)))))
 
 (define-condition parser-error (lua-error)
-  ((expected-tag
+  ((token
+    :initarg :token
+    :reader parser-error-token
+    :type token)
+   (expected-tag
     :initarg :expected-tag
     :reader parser-error-expected-tag)
    (actual-tag
     :initarg :actual-tag
-    :reader parser-error-actual-tag)
-   (linum
-    :initarg :linum
-    :reader parser-error-linum
-    :type integer)))
+    :reader parser-error-actual-tag))
+  (:report
+   (lambda (condition stream)
+     (format stream
+             "expected-tag = '~A'~@
+              actual-tag = '~A'~@
+              token = ~A"
+             (parser-error-expected-tag condition)
+             (parser-error-actual-tag condition)
+             (parser-error-token condition)))))

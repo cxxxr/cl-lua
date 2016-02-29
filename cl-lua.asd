@@ -7,8 +7,8 @@
   :components ((:module "src"
                 :serial t
                 :components ((:file "util")
-                             (:file "error")
                              (:file "token")
+                             (:file "error")
                              (:file "lexer")
                              (:file "ast")
                              (:file "parser"))))

@@ -20,9 +20,9 @@
 
 (defun parser-error (token expected-tag actual-tag)
   (error 'parser-error
+         :token token
          :expected-tag expected-tag
-         :actual-tag actual-tag
-         :linum (token-linum token)))
+         :actual-tag actual-tag))
 
 (defun pushback (token)
   (push *lookahead* *lookahead-undo-stack*)
