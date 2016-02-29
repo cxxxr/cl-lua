@@ -9,13 +9,13 @@
    :cl-lua.ast
    :alexandria)
   (:export
+   :parser-error
    :parse
    :parse-from-string))
 (in-package :cl-lua.parser)
 
 (defvar *lexer*)
-(defvar *lookahead* nil)
-
+(defvar *lookahead*)
 (defvar *lookahead-undo-stack*)
 
 (defun parser-error (token expected-tag actual-tag)
@@ -130,56 +130,50 @@
      (next)
      (make-ast :void nil))
     ("::"
-     (next)
      (parse-label))
     ("break"
-     (next)
      (parse-break))
     ("goto"
-     (next)
      (parse-goto))
     ("do"
-     (next)
      (parse-do))
     ("while"
-     (next)
      (parse-while))
     ("repeat"
-     (next)
      (parse-repeat))
     ("if"
-     (next)
      (parse-if))
     ("for"
-     (next)
      (parse-for))
     ("function"
-     (next)
      (parse-function))
     ("local"
-     (next)
      (parse-local))
     (("word" "(")
      (parse-expr-stat))
     (otherwise nil)))
 
 (defun parse-label ()
-  (let ((name (exact "word")))
-    (exact "::")
-    (make-ast :label (token-linum name) (token-value name))))
+  (when (accept "::")
+    (let ((name (exact "word")))
+      (exact "::")
+      (make-ast :label (token-linum name) (token-value name)))))
 
 (defun parse-break ()
   (let ((linum (token-linum *lookahead*)))
-    (make-ast :break linum)))
+    (when (accept "break")
+      (make-ast :break linum))))
 
 (defun parse-goto ()
   (let ((linum (token-linum *lookahead*)))
-    (let ((word (exact "word")))
-      (make-ast :goto linum (token-value word)))))
+    (when (accept "goto")
+      (let ((word (exact "word")))
+        (make-ast :goto linum (token-value word))))))
 
 (defun parse-do ()
-  (prog1 (parse-block)
-    (exact "end")))
+  (when (accept "do")
+    (prog1 (parse-block)
+      (exact "end"))))
 
 (defun parse-do-exact ()
   (exact "do")
@@ -191,7 +185,7 @@
     (when (accept "while")
       (let* ((exp (parse-exp))
              (body (parse-do-exact)))
-        (make-ast :while linum body exp)))))
+        (make-ast :while linum exp body)))))
 
 (defun parse-repeat ()
   (let ((linum (token-linum *lookahead*)))
@@ -211,10 +205,11 @@
                             (parse-block)))
                     (else (cond ((accept "elseif")
                                  (f))
-                                ((accept "else")
-                                 (parse-block))
                                 (t
-                                 (exact "end")))))
+                                 (prog1 (if (accept "else")
+                                            (parse-block)
+                                            (make-ast :void nil))
+                                   (exact "end"))))))
                (make-ast :if linum test then else))))
     (when (accept "if")
       (f))))
@@ -236,7 +231,7 @@
                              (parse-exp)))
                       (step (if (accept ",")
                                 (parse-exp)
-                                (make-ast :void nil))))
+                                (make-ast :number linum 1))))
                  (make-ast :for
                            linum
                            (car namelist)
@@ -284,9 +279,10 @@
 
 (defun parse-local ()
   (let ((linum (token-linum *lookahead*)))
-    (ecase-token
-      ("function" (next) (parse-local-function linum))
-      ("word" (parse-local-vars linum)))))
+    (when (accept "local")
+      (ecase-token
+        ("function" (next) (parse-local-function linum))
+        ("word" (parse-local-vars linum))))))
 
 (defun parse-local-function (linum)
   (let* ((token (exact "word"))
@@ -373,7 +369,7 @@
                         (token-linum token)
                         (token-value token)))
           (cons (exact "word")
-                (loop :while (accept ".")
+                (loop :while (accept ",")
                       :collect (exact "word")))))
 
 (defun parse-explist ()
@@ -644,7 +640,8 @@
                 (values t (parse-exp) t))))))))
 
 (defun parse (*lexer*)
-  (let ((*lookahead-undo-stack*))
+  (let ((*lookahead-undo-stack*)
+        (*lookahead*))
     (next)
     (parse-block)))
 

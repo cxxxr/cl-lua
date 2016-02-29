@@ -77,6 +77,12 @@
                                (:binary-op "^"
                                            (:number 123)
                                            (:number 456)))))))
+  (test "f()g();;h()"
+        '(:block
+          ((:call-function (:var "f") ())
+           (:call-function (:var "g") ())
+           (:call-function (:var "h") ()))
+          (:void)))
   (test "a=3"
         '(:block
           ((:assign ((:var "a")) ((:number 3))))
@@ -140,5 +146,90 @@
         '(:block
           ((:block ((:label "foo") (:goto "foo"))
              (:void)))
+          (:void)))
+  (test "i = 0
+while i < 10 do
+  print(i)
+end"
+        '(:block
+          ((:assign ((:var "i")) ((:number 0)))
+           (:while (:binary-op "<" (:var "i") (:number 10))
+            (:block
+                ((:call-function (:var "print") ((:var "i"))))
+              (:void))))
+          (:void)))
+  (test "repeat f() g() until test"
+        '(:block
+          ((:repeat
+            (:block ((:call-function (:var "f") ())
+                     (:call-function (:var "g") ()))
+              (:void))
+            (:var "test")))
+          (:void)))
+  (test "if a == 1 then print(1) end"
+        '(:block
+          ((:if (:binary-op "=="
+                            (:var "a")
+                            (:number 1))
+                (:block ((:call-function (:var "print") ((:number 1))))
+                  (:void))
+                (:void)))
+          (:void)))
+  (test "if a == 1 then print(1) else print(2) end"
+        '(:block
+          ((:if (:binary-op "=="
+                            (:var "a")
+                            (:number 1))
+                (:block ((:call-function (:var "print") ((:number 1))))
+                  (:void))
+                (:block ((:call-function (:var "print") ((:number 2))))
+                  (:void))))
+          (:void)))
+  (test "if a == 1 then print(1) elseif a == 2 then print(2) else print(3) end"
+        '(:block
+          ((:if (:binary-op "=="
+                            (:var "a")
+                            (:number 1))
+                (:block ((:call-function (:var "print") ((:number 1))))
+                  (:void))
+                (:if (:binary-op "=="
+                                 (:var "a")
+                                 (:number 2))
+                     (:block ((:call-function (:var "print") ((:number 2))))
+                       (:void))
+                     (:block ((:call-function (:var "print") ((:number 3))))
+                       (:void)))))
+          (:void)))
+  (test "for x = 1, 10 do print(i) end"
+        '(:block
+          ((:for (:var "x") (:number 1) (:number 10) (:number 1)
+            (:block ((:call-function (:var "print") ((:var "i"))))
+              (:void))))
+          (:void)))
+  (test "for x = 1, 10, 2 do print(i) end"
+        '(:block
+          ((:for (:var "x") (:number 1) (:number 10) (:number 2)
+            (:block ((:call-function (:var "print") ((:var "i"))))
+              (:void))))
+          (:void)))
+  (test "for x = f(), 10 do print(i) end"
+        '(:block
+          ((:for (:var "x") (:call-function (:var "f") ()) (:number 10) (:number 1)
+            (:block ((:call-function (:var "print") ((:var "i"))))
+              (:void))))
+          (:void)))
+  (prove:is-condition (parse-from-string "for x, y = 1, 10 do print(x) end")
+                      'parser-error)
+  (test "for x in explist do print(x) end"
+        '(:block
+          ((:generic-for ((:var "x")) ((:var "explist"))
+            (:block ((:call-function (:var "print") ((:var "x"))))
+              (:void))))
+          (:void)))
+  (test "for x,y,z in explist do end"
+        '(:block
+          ((:generic-for ((:var "x") (:var "y") (:var "z")) ((:var "explist"))
+            (:block ()
+              (:void))))
           (:void)))
   (prove:finalize))
