@@ -1,10 +1,12 @@
 (in-package :cl-user)
 (defpackage :cl-lua.util
-  (:use :cl)
+  (:use :cl :alexandria)
   (:export
    :unicode-to-utf8
    :length=1
-   :string-to-bytes))
+   :string-to-bytes
+   :with-accumulate
+   :collect))
 (in-package :cl-lua.util)
 
 (defun utf8-nbits (n)
@@ -48,3 +50,11 @@
 (defun length=1 (list)
   (and (consp list)
        (null (cdr list))))
+
+(defmacro with-accumulate (() &body body)
+  (with-gensyms (gacc)
+    `(let ((,gacc))
+       (macrolet ((collect (x)
+                    `(push ,x ,',gacc)))
+         ,@body)
+       (nreverse ,gacc))))

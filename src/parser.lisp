@@ -250,7 +250,7 @@
           (make-ast :assign
                     linum
                     (list name)
-                    (make-ast :function linum parlist body)))))))
+                    (list (make-ast :function linum parlist body))))))))
 
 (defun parse-funcname ()
   (let* ((name (exact "word"))
@@ -263,15 +263,17 @@
                          (token-value name)))
           (names (mapcar #'(lambda (name)
                              (make-ast :string
+                                       (token-linum name)
                                        (string-to-bytes (token-value name))))
-                         (append names (list method-name)))))
+                         (append names
+                                 (if method-name
+                                     (list method-name))))))
       (values (reduce #'(lambda (x y)
                           (make-ast :refer-table
                                     (token-linum name)
                                     x
                                     y))
-                      (cons var names)
-                      :from-end t)
+                      (cons var names))
               (if method-name t nil)))))
 
 (defun parse-local ()
@@ -283,9 +285,7 @@
 
 (defun parse-local-function (linum)
   (let* ((token (exact "word"))
-         (var (make-ast :var
-                        (token-linum token)
-                        (token-value token))))
+         (var (token-value token)))
     (multiple-value-bind (parlist body)
         (parse-funcbody)
       (make-ast :progn
@@ -298,9 +298,9 @@
                           linum
                           (list var)
                           (list (make-ast :function
-                                          :parameters parlist
-                                          :body body)))))))
-
+                                          linum
+                                          parlist
+                                          body)))))))
 
 (defun parse-local-vars (linum)
   (let* ((namelist (parse-namelist))
@@ -348,23 +348,24 @@
     (values parlist body)))
 
 (defun parse-parlist ()
-  (let ((linum (token-linum *lookahead*)))
-    (if (accept "...")
-        (make-ast :variadic linum)
-        (let ((namelist (parse-namelist)))
-          (cond ((accept ",")
-                 (let ((linum (token-linum *lookahead*)))
-                   (exact "...")
-                   (append namelist
-                           (list (make-ast :variadic linum)))))
-                (t
-                 namelist))))))
+  (cond ((accept "...")
+         (list :rest))
+        (t
+         (cons (token-value (exact "word"))
+               (with-accumulate ()
+                 (loop
+                   (unless (accept ",")
+                     (return))
+                   (let ((token (accept "word")))
+                     (cond (token
+                            (collect (token-value token)))
+                           (t
+                            (when (accept "...")
+                              (collect :rest))
+                            (return))))))))))
 
 (defun parse-namelist ()
-  (mapcar #'(lambda (token)
-              (make-ast :var
-                        (token-linum token)
-                        (token-value token)))
+  (mapcar #'token-value
           (cons (exact "word")
                 (loop :while (accept ",")
                       :collect (exact "word")))))
@@ -424,7 +425,7 @@
                       (token-value *lookahead*))
        (next)))
     ("..."
-     (prog1 (make-ast :variadic
+     (prog1 (make-ast :rest
                       (token-linum *lookahead*))
        (next)))
     ("function"
@@ -528,6 +529,7 @@
                   linum
                   x
                   (make-ast :string
+                            (token-linum name)
                             (string-to-bytes
                              (token-value name)))))))
     (("(" "{" "string")

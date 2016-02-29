@@ -90,22 +90,28 @@
   (test "print(1)"
         '(:block ((:call-function (:var "print") ((:number 1)))) (:void)))
   (test "f(1,2,3)"
-        '(:block ((:call-function (:var "f") ((:number 1) (:number 2) (:number 3))))
+        '(:block ((:call-function
+                   (:var "f")
+                   ((:number 1) (:number 2) (:number 3))))
           (:void)))
   (test "func('abc')"
-        `(:block ((:call-function (:var "func")
-                                  ((:string ,(cl-lua.util:string-to-bytes "abc")))))
+        `(:block ((:call-function
+                   (:var "func")
+                   ((:string ,(cl-lua.util:string-to-bytes "abc")))))
            (:void))
         #'equalp)
   (test "func'abc'"
-        `(:block ((:call-function (:var "func")
-                                  ((:string ,(cl-lua.util:string-to-bytes "abc")))))
+        `(:block ((:call-function
+                   (:var "func")
+                   ((:string ,(cl-lua.util:string-to-bytes "abc")))))
            (:void))
         #'equalp)
   (test "func{1,2,3}"
         '(:block
           ((:call-function (:var "func")
-            ((:tableconstructor ((:number 1) (:number 2) (:number 3)) (:void)))))
+            ((:tableconstructor
+              ((:number 1) (:number 2) (:number 3))
+              (:void)))))
           (:void)))
   (test "a={1,2,3}"
         '(:block
@@ -202,19 +208,19 @@ end"
           (:void)))
   (test "for x = 1, 10 do print(i) end"
         '(:block
-          ((:for (:var "x") (:number 1) (:number 10) (:number 1)
+          ((:for "x" (:number 1) (:number 10) (:number 1)
             (:block ((:call-function (:var "print") ((:var "i"))))
               (:void))))
           (:void)))
   (test "for x = 1, 10, 2 do print(i) end"
         '(:block
-          ((:for (:var "x") (:number 1) (:number 10) (:number 2)
+          ((:for "x" (:number 1) (:number 10) (:number 2)
             (:block ((:call-function (:var "print") ((:var "i"))))
               (:void))))
           (:void)))
   (test "for x = f(), 10 do print(i) end"
         '(:block
-          ((:for (:var "x") (:call-function (:var "f") ()) (:number 10) (:number 1)
+          ((:for "x" (:call-function (:var "f") ()) (:number 10) (:number 1)
             (:block ((:call-function (:var "print") ((:var "i"))))
               (:void))))
           (:void)))
@@ -222,14 +228,90 @@ end"
                       'parser-error)
   (test "for x in explist do print(x) end"
         '(:block
-          ((:generic-for ((:var "x")) ((:var "explist"))
+          ((:generic-for ("x") ((:var "explist"))
             (:block ((:call-function (:var "print") ((:var "x"))))
               (:void))))
           (:void)))
   (test "for x,y,z in explist do end"
         '(:block
-          ((:generic-for ((:var "x") (:var "y") (:var "z")) ((:var "explist"))
+          ((:generic-for ("x" "y" "z") ((:var "explist"))
             (:block ()
               (:void))))
           (:void)))
+  (test "function f() end"
+        '(:block ((:assign
+                   ((:var "f"))
+                   ((:function () (:block () (:void))))))
+          (:void)))
+  (test "function f(x,y,z) return x+y+z end"
+        '(:block ((:assign
+                   ((:var "f"))
+                   ((:function ("x" "y" "z")
+                     (:block ()
+                       ((:binary-op "+"
+                                    (:binary-op "+"
+                                                (:var "x")
+                                                (:var "y"))
+                                    (:var "z"))))))))
+          (:void)))
+  (test "function f(x,y,...) end"
+        '(:block ((:assign
+                   ((:var "f"))
+                   ((:function ("x" "y" :rest)
+                     (:block () (:void))))))
+          (:void)))
+  (test "function a.b.c() end"
+        `(:block ((:assign
+                   ((:refer-table
+                     (:refer-table
+                      (:var "a")
+                      (:string ,(cl-lua.util:string-to-bytes "b")))
+                     (:string ,(cl-lua.util:string-to-bytes "c"))))
+                   ((:function () (:block () (:void))))))
+           (:void))
+        #'equalp)
+  (test "local x"
+        '(:block ((:local ("x") (:void)))
+          (:void)))
+  (test "local x = 0"
+        '(:block ((:local ("x") ((:number 0))))
+          (:void)))
+  (test "local x, y = f()"
+        '(:block ((:local ("x" "y") ((:call-function (:var "f") ()))))
+          (:void)))
+  (test "local x, y = f(), g()"
+        '(:block ((:local
+                   ("x" "y")
+                   ((:call-function (:var "f") ())
+                    (:call-function (:var "g") ()))))
+          (:void)))
+  (test "local function f() end"
+        '(:block ((:local ("f") (:void))
+                  (:assign ("f")
+                   ((:function () (:block () (:void))))))
+          (:void)))
+  (test "local function f(x) print(x) return x, 1 end"
+        '(:block ((:local ("f") (:void))
+                  (:assign ("f")
+                   ((:function ("x")
+                     (:block ((:call-function (:var "print") ((:var "x"))))
+                       ((:var "x") (:number 1)))))))
+          (:void)))
+  (test "local function f(...) print(...) end"
+        '(:block ((:local ("f") (:void))
+                  (:assign ("f")
+                   ((:function (:rest)
+                     (:block ((:call-function (:var "print") ((:rest))))
+                       (:void))))))
+          (:void)))
+  (test "f(nil, false, true, 123, 123.45, 'abc', ..., function (x) return x + x end)"
+        `(:block ((:call-function
+                   (:var "f")
+                   ((:nil) (:false) (:true) (:number 123) (:number 123.45)
+                    (:string ,(cl-lua.util:string-to-bytes "abc"))
+                    (:rest)
+                    (:function ("x")
+                               (:block () ((:binary-op "+" (:var "x") (:var "x"))))))))
+           (:void))
+        #'equalp)
   (prove:finalize))
