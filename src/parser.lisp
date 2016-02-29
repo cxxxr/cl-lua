@@ -102,9 +102,7 @@
                                       (parse-stat))
                        :while stat
                        :collect stat)))
-         (retstat (if (accept "return")
-                      (parse-retstat)
-                      (make-ast :void nil))))
+         (retstat (parse-retstat)))
     (make-ast :block linum stats retstat)))
 
 (defun flatten-stats (stats)
@@ -116,13 +114,12 @@
             :collect stat))
 
 (defun parse-retstat ()
-  (let ((linum (token-linum *lookahead*)))
-    (let ((explist
-            (if (exp-start-p)
-                (parse-explist)
-                (make-ast :void nil))))
-      (accept ";")
-      (make-ast :return linum explist))))
+  (if (accept "return")
+      (prog1 (if (exp-start-p)
+                 (parse-explist)
+                 nil)
+        (accept ";"))
+      (make-ast :void nil)))
 
 (defun parse-stat ()
   (case-token

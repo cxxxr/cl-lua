@@ -10,73 +10,73 @@
 (defun test-all ()
   (prove:plan nil)
   (test "return"
-        '(:block nil (:return (:void))))
+        '(:block nil nil))
   (test "return 1"
         '(:block
           nil
-          (:return ((:number 1)))))
+          ((:number 1))))
   (test "return 1+2"
         '(:block
           nil
-          (:return ((:binary-op "+" (:number 1) (:number 2))))))
+          ((:binary-op "+" (:number 1) (:number 2)))))
   (test "return 1+2+3"
         '(:block
           nil
-          (:return ((:binary-op "+"
-                                (:binary-op "+"
-                                            (:number 1)
-                                            (:number 2))
-                                (:number 3))))))
+          ((:binary-op "+"
+            (:binary-op "+"
+             (:number 1)
+             (:number 2))
+            (:number 3)))))
   (test "return 1*2"
         '(:block
           nil
-          (:return ((:binary-op "*"
-                                (:number 1)
-                                (:number 2))))))
+          ((:binary-op "*"
+            (:number 1)
+            (:number 2)))))
   (test "return 1+2*3"
         '(:block
           nil
-          (:return ((:binary-op "+"
-                                (:number 1)
-                                (:binary-op "*"
-                                            (:number 2)
-                                            (:number 3)))))))
+          ((:binary-op "+"
+            (:number 1)
+            (:binary-op "*"
+             (:number 2)
+             (:number 3))))))
   (test "return -3+4"
         '(:block
           nil
-          (:return ((:binary-op "+"
-                                (:unary-op "-" (:number 3))
-                                (:number 4))))))
+          ((:binary-op "+"
+            (:unary-op "-" (:number 3))
+            (:number 4)))))
   (test "return -2^3"
         '(:block
           nil
-          (:return ((:unary-op "-"
-                               (:binary-op "^"
-                                           (:number 2)
-                                           (:number 3)))))))
+          ((:unary-op "-"
+            (:binary-op "^"
+             (:number 2)
+             (:number 3))))))
   (test "return 1*2+3"
         '(:block
           nil
-          (:return ((:binary-op "+"
-                                (:binary-op "*"
-                                            (:number 1)
-                                            (:number 2))
-                                (:number 3))))))
+          ((:binary-op "+"
+            (:binary-op "*"
+             (:number 1)
+             (:number 2))
+            (:number 3)))))
   (test "return (3+4)*2"
         '(:block
           nil
-          (:return ((:binary-op "*"
-                                (:binary-op "+"
-                                            (:number 3)
-                                            (:number 4))
-                                (:number 2))))))
+          ((:binary-op "*"
+            (:binary-op "+"
+             (:number 3)
+             (:number 4))
+            (:number 2)))))
   (test "return -123^456"
         '(:block
           nil
-          (:return ((:unary-op "-"
-                               (:binary-op "^"
-                                           (:number 123)
-                                           (:number 456)))))))
+          ((:unary-op "-"
+            (:binary-op "^"
+             (:number 123)
+             (:number 456))))))
   (test "f()g();;h()"
         '(:block
           ((:call-function (:var "f") ())
