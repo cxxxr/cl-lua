@@ -605,36 +605,29 @@
       (exp-start-p)))
 
 (defun parse-field ()
-  (let ((linum (token-linum *lookahead*)))
-    (cond ((accept "[")
-           (let ((key (parse-exp)))
-             (exact "]")
-             (exact "=")
-             (let ((value (parse-exp)))
-               (values t
-                       (make-ast :field
-                                 linum
-                                 key
-                                 value)
-                       nil))))
-          ((exp-start-p)
-           (let ((name (accept "word")))
-             (cond
-               ((and name (accept "="))
-                (let* ((exp (parse-exp))
-                       (key (make-ast :var
-                                      (token-linum name)
-                                      (token-value name))))
-                  (values t
-                          (make-ast :field
-                                    linum
-                                    key
-                                    exp)
-                          nil)))
-               (t
-                (when name
-                  (pushback name))
-                (values t (parse-exp) t))))))))
+  (cond ((accept "[")
+         (let ((key (parse-exp)))
+           (exact "]")
+           (exact "=")
+           (let ((value (parse-exp)))
+             (values t
+                     (list key value)
+                     nil))))
+        ((exp-start-p)
+         (let ((name (accept "word")))
+           (cond
+             ((and name (accept "="))
+              (let* ((exp (parse-exp))
+                     (key (make-ast :var
+                                    (token-linum name)
+                                    (token-value name))))
+                (values t
+                        (list key exp)
+                        nil)))
+             (t
+              (when name
+                (pushback name))
+              (values t (parse-exp) t)))))))
 
 (defun parse (*lexer*)
   (let ((*lookahead-undo-stack*)
