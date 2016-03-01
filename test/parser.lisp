@@ -362,3 +362,5 @@ end"
            (:void))
         #'equalp)
   (prove:finalize))
+
+(test-all)
