@@ -110,7 +110,7 @@
         :if (consp (car stat))
           :append stat
         :else
-          :if (not (eq (ast-name stat) :void))
+          :if (not (ast-void-p stat))
             :collect stat))
 
 (defun parse-retstat ()

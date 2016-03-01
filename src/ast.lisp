@@ -4,7 +4,8 @@
   (:export
    :make-ast
    :ast-name
-   :ast-args))
+   :ast-args
+   :ast-void-p))
 (in-package :cl-lua.ast)
 
 (defvar *ast-names* nil)
@@ -63,3 +64,6 @@
 (define-ast tableconstructor field-array field-pairs)
 (define-ast void)
 (define-ast var name)
+
+(defun ast-void-p (ast)
+  (eq :void (ast-name ast)))
