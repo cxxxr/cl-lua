@@ -107,8 +107,8 @@
 
 (defun flatten-stats (stats)
   (loop :for stat :in stats
-        :if (eq (ast-name stat) :progn)
-          :append (ast-args stat)
+        :if (consp (car stat))
+          :append stat
         :else
           :if (not (eq (ast-name stat) :void))
             :collect stat))
@@ -288,19 +288,18 @@
          (var (token-value token)))
     (multiple-value-bind (parlist body)
         (parse-funcbody)
-      (make-ast :progn
-                linum
-                (make-ast :local
-                          linum
-                          (list var)
-                          (make-ast :void nil))
-                (make-ast :assign
-                          linum
-                          (list var)
-                          (list (make-ast :function
-                                          linum
-                                          parlist
-                                          body)))))))
+      (list
+       (make-ast :local
+                 linum
+                 (list var)
+                 (make-ast :void nil))
+       (make-ast :assign
+                 linum
+                 (list var)
+                 (list (make-ast :function
+                                 linum
+                                 parlist
+                                 body)))))))
 
 (defun parse-local-vars (linum)
   (let* ((namelist (parse-namelist))
