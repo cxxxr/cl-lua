@@ -114,12 +114,15 @@
             :collect stat))
 
 (defun parse-retstat ()
-  (if (accept "return")
-      (prog1 (if (exp-start-p)
-                 (parse-explist)
-                 nil)
-        (accept ";"))
-      (make-ast :void nil)))
+  (let ((linum (token-linum *lookahead*)))
+    (if (accept "return")
+        (prog1 (make-ast :return
+                         linum
+                         (if (exp-start-p)
+                             (parse-explist)
+                             nil))
+          (accept ";"))
+        (make-ast :void nil))))
 
 (defun parse-stat ()
   (case-token

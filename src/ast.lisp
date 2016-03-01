@@ -37,6 +37,7 @@
                               (ast-args ,gast))))))))
 
 (define-ast block stats retstat)
+(define-ast return explist)
 (define-ast label name)
 (define-ast break)
 (define-ast goto name)
