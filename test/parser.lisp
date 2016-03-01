@@ -314,4 +314,48 @@ end"
                                (:block () ((:binary-op "+" (:var "x") (:var "x"))))))))
            (:void))
         #'equalp)
+  (test "a.b = c"
+        `(:block ((:assign ((:refer-table
+                             (:var "a")
+                             (:string ,(cl-lua.util:string-to-bytes "b"))))
+                           ((:var "c"))))
+           (:void))
+        #'equalp)
+  (test "a[b][c] = d"
+        '(:block
+          ((:assign ((:refer-table
+                      (:refer-table
+                       (:var "a")
+                       (:var "b"))
+                      (:var "c")))
+            ((:var "d"))))
+          (:void)))
+  (test "a:b()"
+        '(:block
+          ((:call-method (:var "a") "b" ()))
+          (:void)))
+  (test "a.b.c:d(x)"
+        `(:block
+             ((:call-method
+               (:refer-table
+                (:refer-table
+                 (:var "a")
+                 (:string ,(cl-lua.util:string-to-bytes "b")))
+                (:string ,(cl-lua.util:string-to-bytes "c")))
+               "d"
+               ((:var "x"))))
+           (:void))
+        #'equalp)
+  (test "a.b.c:d[[foo]]"
+        `(:block
+             ((:call-method
+               (:refer-table
+                (:refer-table
+                 (:var "a")
+                 (:string ,(cl-lua.util:string-to-bytes "b")))
+                (:string ,(cl-lua.util:string-to-bytes "c")))
+               "d"
+               ((:string ,(cl-lua.util:string-to-bytes "foo")))))
+           (:void))
+        #'equalp)
   (prove:finalize))

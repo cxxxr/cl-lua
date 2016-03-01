@@ -547,9 +547,7 @@
         (make-ast :call-method
                   linum
                   x
-                  (make-ast :var
-                            (token-linum name)
-                            (token-value name))
+                  (token-value name)
                   args))))
     (otherwise x)))
 
