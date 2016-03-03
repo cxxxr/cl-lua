@@ -248,7 +248,7 @@
         (multiple-value-bind (parlist body)
             (parse-funcbody)
           (when method-p
-            (push (make-ast :var linum "self")
+            (push "self"
                   parlist))
           (make-ast :assign
                     linum

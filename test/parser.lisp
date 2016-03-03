@@ -270,6 +270,14 @@ end"
                    ((:function () (:block () (:void))))))
            (:void))
         #'equalp)
+  (test "function a:b() end"
+        `(:block ((:assign
+                   ((:refer-table
+                     (:var "a")
+                     (:string ,(cl-lua.util:string-to-bytes "b"))))
+                   ((:function ("self") (:block nil (:void))))))
+           (:void))
+        #'equalp)
   (test "local x"
         '(:block ((:local ("x") (:void)))
           (:void)))
