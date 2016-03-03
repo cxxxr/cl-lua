@@ -329,10 +329,14 @@
 (defun suffixexp ()
   (labels ((f (varlist)
              (ecase-token
-               ("=" (values t
-                            (nreverse varlist)
-                            (parse-explist)))
-               ("," (f (cons (parse-prefixexp) varlist))))))
+               ("="
+                (next)
+                (values t
+                        (nreverse varlist)
+                        (parse-explist)))
+               (","
+                (next)
+                (f (cons (parse-prefixexp) varlist))))))
     (cond ((accept "=")
            (values t nil (parse-explist)))
           ((accept ",")

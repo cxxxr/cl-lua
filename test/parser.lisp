@@ -87,6 +87,14 @@
         '(:block
           ((:assign ((:var "a")) ((:number 3))))
           (:void)))
+  (test "a,b=1,2"
+        '(:block
+          ((:assign ((:var "a") (:var "b")) ((:number 1) (:number 2))))
+          (:void)))
+  (test "a,b=f()"
+        '(:block
+          ((:assign ((:var "a") (:var "b")) ((:call-function (:var "f") ()))))
+          (:void)))
   (test "print(1)"
         '(:block ((:call-function (:var "print") ((:number 1)))) (:void)))
   (test "f(1,2,3)"
