@@ -578,35 +578,35 @@
 (defun parse-tableconstructor ()
   (let ((linum (token-linum *lookahead*)))
     (exact "{")
-    (multiple-value-bind (fieldarray fieldpairs)
+    (multiple-value-bind (field-sequence field-pairs)
         (parse-fieldlist)
       (exact "}")
       (make-ast :tableconstructor
                 linum
-                (or fieldarray (make-ast :void nil))
-                (or fieldpairs (make-ast :void nil))))))
+                (or field-sequence (make-ast :void nil))
+                (or field-pairs (make-ast :void nil))))))
 
 (defun parse-fieldlist ()
   (cond
     ((not (field-start-p))
      nil)
     (t
-     (let ((fieldarray)
-           (fieldpairs))
+     (let ((field-sequence)
+           (field-pairs))
        (loop
          (multiple-value-bind (match-p field serial-p)
              (parse-field)
            (cond ((not match-p)
                   (return))
                  (serial-p
-                  (push field fieldarray))
+                  (push field field-sequence))
                  (t
-                  (push field fieldpairs))))
+                  (push field field-pairs))))
          (if (match-or "," ";")
              (next)
              (return)))
-       (values (nreverse fieldarray)
-               (nreverse fieldpairs))))))
+       (values (nreverse field-sequence)
+               (nreverse field-pairs))))))
 
 (defun field-start-p ()
   (or (match-p "[")
