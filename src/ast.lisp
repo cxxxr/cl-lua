@@ -7,9 +7,6 @@
    :ast-args
    :ast-void-p
    :block-stats
-   :block-retstat
-   :block-stats
-   :block-retstat
    :return-explist
    :label-name
    :goto-name
@@ -81,7 +78,7 @@
                              (,(intern (format nil "~:@(~:R~)" n))
                               (ast-args ,gast))))))))
 
-(define-ast block stats retstat)
+(define-ast block stats)
 (define-ast return explist)
 (define-ast label name)
 (define-ast goto name)

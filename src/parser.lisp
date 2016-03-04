@@ -109,7 +109,11 @@
                             ((not (ast-void-p stat))
                              (collect stat)))))))
          (retstat (parse-retstat)))
-    (make-ast :block linum stats retstat)))
+    (make-ast :block
+              linum
+              (if (ast-void-p retstat)
+                  stats
+                  (nconc stats (list retstat))))))
 
 (defun parse-retstat ()
   (let ((linum (token-linum *lookahead*)))
