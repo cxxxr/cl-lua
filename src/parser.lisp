@@ -97,21 +97,19 @@
 
 (defun parse-block ()
   (let* ((linum (token-linum *lookahead*))
-         (stats (flatten-stats
-                 (loop :for stat := (when (not (eof-p))
-                                      (parse-stat))
-                       :while stat
-                       :collect stat)))
+         (stats (with-accumulate ()
+                  (loop
+                    (let ((stat (when (not (eof-p))
+                                  (parse-stat))))
+                      (unless stat
+                        (return))
+                      (cond ((consp (car stat))
+                             (dolist (s stat)
+                               (collect s)))
+                            ((not (ast-void-p stat))
+                             (collect stat)))))))
          (retstat (parse-retstat)))
     (make-ast :block linum stats retstat)))
-
-(defun flatten-stats (stats)
-  (loop :for stat :in stats
-        :if (consp (car stat))
-          :append stat
-        :else
-          :if (not (ast-void-p stat))
-            :collect stat))
 
 (defun parse-retstat ()
   (let ((linum (token-linum *lookahead*)))
