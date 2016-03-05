@@ -246,17 +246,17 @@ end"
                     (:call-function (:var "g") ()))))))
   (test "local function f() end"
         '(:block ((:local ("f") (:void))
-                  (:assign ("f")
+                  (:assign ((:var "f"))
                    ((:function () (:block ())))))))
   (test "local function f(x) print(x) return x, 1 end"
         '(:block ((:local ("f") (:void))
-                  (:assign ("f")
+                  (:assign ((:var "f"))
                    ((:function ("x")
                      (:block ((:call-function (:var "print") ((:var "x")))
                               (:return ((:var "x") (:number 1)))))))))))
   (test "local function f(...) print(...) end"
         '(:block ((:local ("f") (:void))
-                  (:assign ("f")
+                  (:assign ((:var "f"))
                    ((:function (:rest)
                      (:block ((:call-function (:var "print") ((:rest)))))))))))
   (test "f(nil, false, true, 123, 123.45, 'abc', ..., function (x) return x + x end)"

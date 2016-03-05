@@ -300,7 +300,7 @@
                  (make-ast :void nil))
        (make-ast :assign
                  linum
-                 (list var)
+                 (list (make-ast :var linum var))
                  (list (make-ast :function
                                  linum
                                  parlist
