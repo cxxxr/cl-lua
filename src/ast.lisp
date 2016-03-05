@@ -70,8 +70,8 @@
   (with-gensyms (gast)
     (let ((slot-names (gen-slot-names name slots))
           (keyword (intern (string name) :keyword)))
-      `(unless (member ,keyword *ast-names*)
-         (push ,keyword *ast-names*)
+      `(progn
+         (pushnew ,keyword *ast-names*)
          ,@(loop :for slot-name :in slot-names
                  :for n :from 1 :by 1
                  :collect `(defun ,slot-name (,gast)
