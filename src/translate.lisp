@@ -83,8 +83,8 @@
                         rest-stats))))
 
 (define-translate-single (:return explist)
-  (if (ast-void-p explist)
-      `(return-from ,*block-name* nil)
+  (if (null explist)
+      `(return-from ,*block-name* cl-lua.runtime:+lua-nil+)
       `(return-from ,*block-name*
          (values ,@(mapcar #'translate-single explist)))))
 
