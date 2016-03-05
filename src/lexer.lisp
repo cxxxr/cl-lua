@@ -47,34 +47,6 @@
 	      (lexer-line lexer)
 	      :start (lexer-column lexer)))
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun gen-with-regex-groups (n vars gstring gstart-groups gend-groups body)
-    (if (null vars)
-        `(progn ,@body)
-        `(let ((,(car vars)
-                 (when (aref ,gstart-groups ,n)
-                   (subseq ,gstring
-                           (aref ,gstart-groups ,n)
-                           (aref ,gend-groups ,n)))))
-           ,(gen-with-regex-groups (1+ n)
-                                   (cdr vars)
-                                   gstring
-                                   gstart-groups
-                                   gend-groups
-                                   body)))))
-
-(defmacro with-regex-groups ((vars string start-groups end-groups) &body body)
-  (with-gensyms (gstring gstart-groups gend-groups)
-    `(let ((,gstring ,string)
-           (,gstart-groups ,start-groups)
-           (,gend-groups ,end-groups))
-       ,(gen-with-regex-groups 0
-                               vars
-                               gstring
-                               gstart-groups
-                               gend-groups
-                               body))))
-
 (defun next-line (lexer)
   (setf (lexer-line lexer)
 	(read-line (lexer-stream lexer)))
@@ -323,41 +295,18 @@
                   :tag "number"
                   :linum (lexer-linum lexer)))))
 
-(defun make-hex-token (int-str float-str exp-str linum)
-  (make-token (if (and int-str (null float-str) (null exp-str))
-                  (parse-integer int-str :radix 16)
-                  (float (* (+ (if int-str
-                                   (parse-integer int-str :radix 16)
-                                   0)
-                               (if float-str
-                                   (/ (parse-integer float-str :radix 16)
-                                      (expt 16 (length float-str)))
-                                   0))
-                            (if exp-str
-                                (float (expt 2 (parse-integer exp-str)))
-                                1))))
-	      :tag "number"
-	      :linum linum))
-
 (defun try-scan-hex-number (lexer)
-  (multiple-value-bind (start end start-groups end-groups)
-      (lexer-scan
-       lexer
-       "^0[xX]([a-fA-F0-9]+)?(?:\\.([a-fA-F0-9]+))?(?:[pP]([+\\-]?[0-9]+))?")
-    (when start
-      (with-regex-groups ((int-str float-str exp-str)
-			  (lexer-line lexer)
-			  start-groups
-			  end-groups)
-	(when (and (null int-str)
-		   (null float-str)
-		   (null exp-str))
-	  (lexer-error lexer "malformed number"))
-	(setf (lexer-column lexer) end)
-	(make-hex-token int-str
-			float-str
-			exp-str
-			(lexer-linum lexer))))))
+  (when (lexer-scan lexer "^0[xX]")
+    (multiple-value-bind (value end)
+        (lua-parse-number-hex (lexer-line lexer)
+                              :start (lexer-column lexer)
+                              :junk-allowed t)
+      (unless value
+        (lexer-error lexer "malformed number"))
+      (setf (lexer-column lexer) end)
+      (make-token value
+                  :tag "number"
+                  :linum (lexer-linum lexer)))))
 
 (defun make-eof-token (lexer)
   (make-token nil :tag "eof" :linum (lexer-linum lexer)))
