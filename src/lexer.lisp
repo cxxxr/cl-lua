@@ -2,10 +2,12 @@
 (defpackage :cl-lua.lexer
   (:use
    :cl
-   :alexandria
    :cl-lua.token
    :cl-lua.error
    :cl-lua.util)
+  (:import-from
+   :alexandria
+   :with-gensyms)
   (:export
    :lexer-error
    :make-lexer

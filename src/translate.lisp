@@ -2,10 +2,14 @@
 (defpackage :cl-lua.translate
   (:use
    :cl
-   :alexandria
    :cl-lua.util
    :cl-lua.ast
    :cl-lua.error)
+  (:import-from
+   :alexandria
+   :symbolicate
+   :with-gensyms
+   :eswitch)
   (:export))
 (in-package :cl-lua.translate)
 

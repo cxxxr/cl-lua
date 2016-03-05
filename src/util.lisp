@@ -1,6 +1,9 @@
 (in-package :cl-user)
 (defpackage :cl-lua.util
-  (:use :cl :alexandria)
+  (:use :cl)
+  (:import-from
+   :alexandria
+   :with-gensyms)
   (:export
    :unicode-to-utf8
    :length=1

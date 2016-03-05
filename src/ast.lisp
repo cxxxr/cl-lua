@@ -1,6 +1,10 @@
 (in-package :cl-user)
 (defpackage :cl-lua.ast
-  (:use :cl :alexandria)
+  (:use :cl)
+  (:import-from
+   :alexandria
+   :with-gensyms
+   :symbolicate)
   (:export
    :make-ast
    :ast-name

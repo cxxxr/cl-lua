@@ -6,8 +6,10 @@
    :cl-lua.lexer
    :cl-lua.error
    :cl-lua.token
-   :cl-lua.ast
-   :alexandria)
+   :cl-lua.ast)
+  (:import-from
+   :alexandria
+   :destructuring-ecase)
   (:export
    :parser-error
    :parse

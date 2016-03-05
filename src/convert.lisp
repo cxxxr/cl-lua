@@ -1,6 +1,9 @@
 (in-package :cl-user)
 (defpackage :cl-lua.convert
-  (:use :cl :alexandria :cl-lua.ast)
+  (:use :cl :cl-lua.ast)
+  (:import-from
+   :alexandria
+   :destructuring-ecase)
   (:export :convert))
 (in-package :cl-lua.convert)
 
