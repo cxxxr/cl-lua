@@ -278,7 +278,8 @@
                                 (list p)))
                  parameters)
              ,gargs
-           ,(translate-single body))))))
+           ,(let ((*label-env* (make-env)))
+              (translate-single body)))))))
 
 (define-translate-single (:refer-table key value)
   `(cl-lua.runtime:lua-get-table
