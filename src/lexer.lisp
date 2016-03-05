@@ -48,19 +48,6 @@
 	      :start (lexer-column lexer)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun gen-with-lexer-scans (vars lexer-var regexes body)
-    (when regexes
-      `(multiple-value-bind (,@vars)
-	   (lexer-scan ,lexer-var ,(car regexes))
-	 (if (or ,@vars)
-             (progn ,@body)
-             ,(gen-with-lexer-scans vars lexer-var (cdr regexes) body))))))
-
-(defmacro with-lexer-scans (((&rest vars) (lexer-var &rest regexes))
-                            &body body)
-  (gen-with-lexer-scans vars lexer-var regexes body))
-
-(eval-when (:compile-toplevel :load-toplevel :execute)
   (defun gen-with-regex-groups (n vars gstring gstart-groups gend-groups body)
     (if (null vars)
         `(progn ,@body)
@@ -324,28 +311,17 @@
 		    :linum start-linum)))))
 
 (defun try-scan-decimal-number (lexer)
-  (with-lexer-scans ((start end)
-		     (lexer
-		      "^[0-9]+\\.(?:[0-9]+(?:[eE][+\\-]?[0-9]+)?)?"
-		      "^\\.[0-9]+(?:[eE][+\\-]?[0-9]+)?"
-		      "^[0-9]+[eE][+\\-]?[0-9]+"))
-    (when start
+  (when (lexer-scan lexer "^\(?:\\.[0-9]|[0-9]\)")
+    (multiple-value-bind (value end)
+        (lua-parse-number-decimal (lexer-line lexer)
+                                  :start (lexer-column lexer)
+                                  :junk-allowed t)
+      (unless value
+        (lexer-error lexer "malformed number"))
       (setf (lexer-column lexer) end)
-      (return-from try-scan-decimal-number
-	(make-token (float
-                     (read-from-string (lexer-line lexer) t nil
-                                       :start start
-                                       :end end))
-		    :tag "number"
-		    :linum (lexer-linum lexer)))))
-  (multiple-value-bind (start end)
-      (lexer-scan lexer "^[0-9]+")
-    (when start
-      (setf (lexer-column lexer) end)
-      (return-from try-scan-decimal-number
-	(make-token (parse-integer (subseq (lexer-line lexer) start end))
-		    :tag "number"
-		    :linum (lexer-linum lexer))))))
+      (make-token value
+                  :tag "number"
+                  :linum (lexer-linum lexer)))))
 
 (defun make-hex-token (int-str float-str exp-str linum)
   (make-token (if (and int-str (null float-str) (null exp-str))
