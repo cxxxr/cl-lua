@@ -4,7 +4,8 @@
   (:export
    :lua-error
    :lexer-error
-   :parser-error))
+   :parser-error
+   :translate-error))
 (in-package :cl-lua.error)
 
 (define-condition lua-error (simple-error)
@@ -44,3 +45,12 @@
              (parser-error-expected-tag condition)
              (parser-error-actual-tag condition)
              (parser-error-token condition)))))
+
+(define-condition translate-error (lua-error)
+  ((text
+    :initarg :text
+    :reader translate-error-text
+    :type string))
+  (:report
+   (lambda (condition stream)
+     (write-line (translate-error-text condition) stream))))

@@ -4,7 +4,8 @@
    :cl
    :alexandria
    :cl-lua.util
-   :cl-lua.ast)
+   :cl-lua.ast
+   :cl-lua.error)
   (:export))
 (in-package :cl-lua.translate)
 
@@ -94,12 +95,19 @@
 (define-translate-single (:goto name)
   (if (env-find *label-env* name)
       `(go ,(string-to-runtime-symbol name))
-      (error "no visible label ~S" name)))
+      (error 'translate-error
+             :text (format nil
+                           "no visible label ~A for <goto> at line ~D"
+                           name
+                           (ast-linum $ast)))))
 
 (define-translate-single (:break)
   (if (boundp '*loop-end-tag*)
       `(go ,*loop-end-tag*)
-      (error "not inside a loop")))
+      (error 'translate-error
+             :text (format nil
+                           "<break> at line ~D not inside a loop"
+                           (ast-linum $ast)))))
 
 (define-translate-single (:while exp body)
   (with-gensyms (gstart-tag gend-tag)
