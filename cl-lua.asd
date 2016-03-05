@@ -11,6 +11,7 @@
                              (:file "error")
                              (:file "lexer")
                              (:file "ast")
+                             (:file "convert")
                              (:file "parser")
                              (:file "runtime")
                              (:file "translate"))))

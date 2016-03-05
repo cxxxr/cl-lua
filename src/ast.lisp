@@ -4,6 +4,7 @@
   (:export
    :make-ast
    :ast-name
+   :ast-linum
    :ast-args
    :ast-void-p
    :block-stats
@@ -53,13 +54,14 @@
 (defvar *ast-names* nil)
 
 (defun make-ast (name linum &rest args)
-  (declare (ignore linum))
   (check-type name keyword)
+  (check-type linum (or null integer))
   (assert (member name *ast-names*))
-  (cons name args))
+  (list* name linum args))
 
 (defun ast-name (ast) (car ast))
-(defun ast-args (ast) (cdr ast))
+(defun ast-linum (ast) (cadr ast))
+(defun ast-args (ast) (cddr ast))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun gen-slot-names (name slots)

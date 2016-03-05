@@ -5,7 +5,9 @@
 (in-package :cl-lua-test.parser)
 
 (defun test (string ast &optional (test #'equal))
-  (prove:is (parse-from-string string) ast :test test))
+  (prove:is (parse-from-string string)
+            (cl-lua.convert:convert ast)
+            :test test))
 
 (defun test-all ()
   (prove:plan nil)
@@ -136,10 +138,7 @@
   (test "do ::foo:: goto foo end"
         '(:block
           ((:block ((:label "foo") (:goto "foo"))))))
-  (test "i = 0
-while i < 10 do
-  print(i)
-end"
+  (test "i = 0 while i < 10 do print(i) end"
         '(:block
           ((:assign ((:var "i")) ((:number 0)))
            (:while (:binary-op "<" (:var "i") (:number 10))
