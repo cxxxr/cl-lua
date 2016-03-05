@@ -11,6 +11,9 @@
 (defvar *loop-end-tag*)
 (defvar *block-name*)
 (defvar *env*)
+(defvar *label-env*)
+
+(defvar *translators* (make-hash-table))
 
 (defun string-to-runtime-symbol (string)
   (check-type string string)
@@ -27,110 +30,122 @@
     (when (find var vars :test #'equal)
       (return t))))
 
-(defgeneric translate-aux (ast name args rest-stats))
+(defun translate-dispatch (ast rest-stats)
+  (assert (gethash (ast-name ast) *translators*))
+  (funcall (gethash (ast-name ast) *translators*)
+           ast
+           (ast-args ast)
+           rest-stats))
+
+(defun translate-single (ast)
+  (car (translate-dispatch ast nil)))
 
 (defun translate-concat (form rest-stats)
   (if (null rest-stats)
-      form
+      (list form)
       (cons form
-            (translate-1 (car rest-stats)
-                         (cdr rest-stats)))))
+            (translate-dispatch (car rest-stats)
+                                (cdr rest-stats)))))
+
+(defun translate-stats (stats)
+  (if (null stats)
+      nil
+      (translate-dispatch (car stats)
+                          (cdr stats))))
 
 (defmacro define-translate ((name &rest parameters) (rest-stats-var)
                             &body body)
-  (with-gensyms (gname gargs)
-    `(defmethod translate-aux
-         ($ast (,gname (eql ,name)) ,gargs ,rest-stats-var)
-       (declare (ignorable $ast))
-       (destructuring-bind ,parameters ,gargs
-         (declare (ignorable ,@parameters))
-         ,@body))))
+  (with-gensyms (gargs)
+    (let ((tr-name (symbolicate "%TRANSLATE-" name)))
+      `(progn
+         (setf (gethash ,name *translators*) ',tr-name)
+         (defun ,tr-name ($ast ,gargs ,rest-stats-var)
+           (declare (ignorable $ast))
+           (destructuring-bind ,parameters ,gargs
+             (declare (ignorable ,@parameters))
+             ,@body))))))
 
-(defmacro define-translate-simple ((name &rest parameters) &body body)
+(defmacro define-translate-single ((name &rest parameters) &body body)
   (with-gensyms (grest-stats)
     `(define-translate (,name ,@parameters) (,grest-stats)
        (translate-concat (progn ,@body)
                          ,grest-stats))))
 
-(defun translate-stats (stats)
-  (if (null stats)
-      nil
-      (translate-concat (translate-1 (car stats))
-                        (cdr stats))))
+(define-translate (:block stats) (rest-stats)
+  (let ((label-list
+          (loop :for stat :in stats
+                :when (eq :label (ast-name stat))
+                  :collect (car (ast-args stat)))))
+    (let ((form `(tagbody
+                    ,@(let ((*label-env* (extend-env label-list *label-env*)))
+                        (translate-stats stats)))))
+      (translate-concat form
+                        rest-stats))))
 
-(define-translate (:block stats retstat) (rest-stats)
-  `(tagbody
-      ,(translate-concat
-        (let ((stats (if (ast-void-p retstat)
-                         stats
-                         (append stats
-                                 (list retstat)))))
-          (translate-stats stats))
-        rest-stats)))
-
-(define-translate (:return explist) (rest-stats)
-  (assert (null rest-stats))
+(define-translate-single (:return explist)
   (if (ast-void-p explist)
       `(return-from ,*block-name* nil)
       `(return-from ,*block-name*
-         (values ,@(mapcar #'translate-1 explist)))))
+         (values ,@(mapcar #'translate-single explist)))))
 
-(define-translate-simple (:label name)
+(define-translate-single (:label name)
   (string-to-runtime-symbol name))
 
-(define-translate-simple (:goto name)
-  `(go ,(string-to-runtime-symbol name)))
+(define-translate-single (:goto name)
+  (if (env-find *label-env* name)
+      `(go ,(string-to-runtime-symbol name))
+      (error "no visible label ~S" name)))
 
-(define-translate-simple (:break)
+(define-translate-single (:break)
   (if (boundp '*loop-end-tag*)
       `(go ,*loop-end-tag*)
       (error "not inside a loop")))
 
-(define-translate-simple (:while exp body)
+(define-translate-single (:while exp body)
   (with-gensyms (gstart-tag gend-tag)
     `(tagbody
         ,gstart-tag
-        (when (is-false ,(translate-1 exp))
+        (when (is-false ,(translate-single exp))
           (go ,gend-tag))
         ,(let ((*loop-end-tag* gend-tag))
-           (translate-1 body))
+           (translate-single body))
         ,gend-tag)))
 
-(define-translate-simple (:repeat body exp)
+(define-translate-single (:repeat body exp)
   (with-gensyms (gstart-tag gend-tag)
     `(tagbody
         ,gstart-tag
         ,(let ((*loop-end-tag* gend-tag))
-           (translate-1 body))
-        (when (is-false ,(translate-1 exp))
+           (translate-single body))
+        (when (is-false ,(translate-single exp))
           (go ,gstart-tag))
         ,gend-tag)))
 
-(define-translate-simple (:if test then else)
-  `(if (is-true ,(translate-1 test))
-       ,(translate-1 then)
-       ,(translate-1 else)))
+(define-translate-single (:if test then else)
+  `(if (is-true ,(translate-single test))
+       ,(translate-single then)
+       ,(translate-single else)))
 
-(define-translate-simple (:for name init end step body)
+(define-translate-single (:for name init end step body)
   (with-gensyms (gi glimit gstart-tag gend-tag)
-    `(let ((,gi ,(translate-1 init))
-           (,glimit ,(translate-1 end)))
+    `(let ((,gi ,(translate-single init))
+           (,glimit ,(translate-single end)))
        (tagbody
           ,gstart-tag
           (when (> ,gi ,glimit) (go ,gend-tag))
           ,(let ((*loop-end-tag* gend-tag)
                  (*env* (extend-env (list name) *env*)))
-             (translate-1 body))
+             (translate-single body))
           (incf ,gi)
           (go ,gstart-tag)
           ,gend-tag))))
 
-(define-translate-simple (:generic-for namelist explist body)
+(define-translate-single (:generic-for namelist explist body)
   (let* ((vars (mapcar #'string-to-runtime-symbol namelist))
          (var1 (car vars)))
     (with-gensyms (gf gs gvar gstart-tag gend-tag)
       `(multiple-value-bind (,gf ,gs ,gvar)
-           (values ,@(mapcar #'translate-1 explist))
+           (values ,@(mapcar #'translate-single explist))
          (tagbody
             ,gstart-tag
             (multiple-value-bind ,vars
@@ -142,72 +157,72 @@
               (setf ,gvar ,var1)
               ,(let ((*loop-end-tag* gend-tag)
                      (*env* (extend-env namelist *env*)))
-                 (translate-1 body)))
+                 (translate-single body)))
             (go ,gstart-tag)
             ,gend-tag)))))
 
 (define-translate (:local namelist explist) (rest-stats)
-  `(multiple-value-bind ,(mapcar #'string-to-runtime-symbol namelist)
-       (values ,@(mapcar #'translate-1 explist))
-     ,(let ((*env* (extend-env namelist *env*)))
-        (translate-stats rest-stats))))
+  `((multiple-value-bind ,(mapcar #'string-to-runtime-symbol namelist)
+        (values ,@(mapcar #'translate-single explist))
+      ,(let ((*env* (extend-env namelist *env*)))
+         (translate-stats rest-stats)))))
 
-(define-translate-simple (:assign varlist explist)
+(define-translate-single (:assign varlist explist)
   (let ((tmp-vars (loop :for v :in varlist :collect (gensym))))
     `(multiple-value-bind ,tmp-vars
-         (values ,@(mapcar #'translate-1 explist))
+         (values ,@(mapcar #'translate-single explist))
        ,@(loop :for var1 :in varlist
                :for var2 :in tmp-vars
-               :collect `(setf ,(translate-1 var1) ,var2)))))
+               :collect `(setf ,(translate-single var1) ,var2)))))
 
-(define-translate-simple (:var name)
+(define-translate-single (:var name)
   (if (env-find *env* name)
       (string-to-runtime-symbol name)
       `(cl-lua.runtime:lua-get-table
         ,cl-lua.runtime:+lua-env-name+
         ,(string-to-bytes name))))
 
-(define-translate-simple (:nil)
+(define-translate-single (:nil)
   cl-lua.runtime:+lua-nil+)
 
-(define-translate-simple (:false)
+(define-translate-single (:false)
   cl-lua.runtime:+lua-false+)
 
-(define-translate-simple (:true)
+(define-translate-single (:true)
   cl-lua.runtime:+lua-true+)
 
-(define-translate-simple (:number value)
+(define-translate-single (:number value)
   value)
 
-(define-translate-simple (:string value)
+(define-translate-single (:string value)
   value)
 
-(define-translate-simple (:tableconstructor field-sequence field-pairs)
+(define-translate-single (:tableconstructor field-sequence field-pairs)
   `(cl-lua.runtime:make-lua-table
     :pairs (list
             ,@(mapcar #'(lambda (elt)
-                          `(cons ,(translate-1 (car elt))
-                                 ,(translate-1 (cadr elt))))
+                          `(cons ,(translate-single (car elt))
+                                 ,(translate-single (cadr elt))))
                       field-pairs))
-    :sequence (vector ,@(mapcar #'translate-1 field-sequence))))
+    :sequence (vector ,@(mapcar #'translate-single field-sequence))))
 
-(define-translate-simple (:rest)
+(define-translate-single (:rest)
   cl-lua.runtime:+lua-rest-symbol+)
 
-(define-translate-simple (:unary-op name exp)
+(define-translate-single (:unary-op name exp)
   (eswitch (name :test #'string=)
     ("-"
-     `(cl-lua.runtime:lua-minus ,(translate-1 exp)))
+     `(cl-lua.runtime:lua-minus ,(translate-single exp)))
     ("not"
-     `(cl-lua.runtime:lua-not ,(translate-1 exp)))
+     `(cl-lua.runtime:lua-not ,(translate-single exp)))
     ("#"
-     `(cl-lua.runtime:lua-len ,(translate-1 exp)))
+     `(cl-lua.runtime:lua-len ,(translate-single exp)))
     ("~"
-     `(cl-lua.runtime:lua-lognot-unary ,(translate-1 exp)))))
+     `(cl-lua.runtime:lua-lognot-unary ,(translate-single exp)))))
 
-(define-translate-simple (:binary-op name left right)
-  (let ((left-form (translate-1 left))
-        (right-form (translate-1 right)))
+(define-translate-single (:binary-op name left right)
+  (let ((left-form (translate-single left))
+        (right-form (translate-single right)))
     (eswitch (name :test #'string=)
       ("+"
        `(cl-lua.runtime:lua-add ,left-form ,right-form))
@@ -252,7 +267,7 @@
       ("or"
        `(cl-lua.runtime:lua-or ,left-form ,right-form)))))
 
-(define-translate-simple (:function parameters body)
+(define-translate-single (:function parameters body)
   (with-gensyms (gargs)
     `(lambda (&rest ,gargs)
        (block nil
@@ -263,40 +278,35 @@
                                 (list p)))
                  parameters)
              ,gargs
-           ,(translate-1 body))))))
+           ,(translate-single body))))))
 
-(define-translate-simple (:refer-table key value)
+(define-translate-single (:refer-table key value)
   `(cl-lua.runtime:lua-get-table
-    ,(translate-1 key)
-    ,(translate-1 value)))
+    ,(translate-single key)
+    ,(translate-single value)))
 
 (defun gen-call-function (fun args)
   `(multiple-value-call ,fun ,@args))
 
-(define-translate-simple (:call-function fun args)
-  (gen-call-function (translate-1 fun)
-                     (mapcar #'translate-1 args)))
+(define-translate-single (:call-function fun args)
+  (gen-call-function (translate-single fun)
+                     (mapcar #'translate-single args)))
 
-(define-translate-simple (:call-method prefix name args)
+(define-translate-single (:call-method prefix name args)
   (with-gensyms (gvalue)
-    `(let ((,gvalue ,(translate-1 prefix)))
+    `(let ((,gvalue ,(translate-single prefix)))
        (multiple-value-call
            (cl-lua.runtime:lua-get-table ,gvalue
                                          ,(string-to-bytes name))
          ,gvalue
-         ,@(mapcar #'translate-1 args)))))
+         ,@(mapcar #'translate-single args)))))
 
-(define-translate-simple (:void))
-
-(defun translate-1 (ast &optional rest-stats)
-  (translate-aux ast
-                 (ast-name ast)
-                 (ast-args ast)
-                 rest-stats))
+(define-translate-single (:void))
 
 (defun translate (ast)
   (print ast)
   (let ((*block-name* nil)
-        (*env* (make-env)))
+        (*env* (make-env))
+        (*label-env* (make-env)))
     `(block ,*block-name*
-       ,(translate-1 ast))))
+       ,(translate-single ast))))
