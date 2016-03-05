@@ -11,7 +11,8 @@
    :with-accumulate
    :collect
    :lua-parse-number-decimal
-   :lua-parse-number-hex))
+   :lua-parse-number-hex
+   :lua-parse-number))
 (in-package :cl-lua.util)
 
 (defun utf8-nbits (n)
@@ -164,3 +165,16 @@
                                     (float (expt 2 (parse-integer exp-str)))
                                     1))))
                   res-end))))))
+
+(defun lua-parse-number (string
+                         &key
+                           (start 0)
+                           (end (length string))
+                           junk-allowed)
+  (funcall (if (ppcre:scan "^0[xX]" string :start start)
+               #'lua-parse-number-hex
+               #'lua-parse-number-decimal)
+           string
+           :start start
+           :end end
+           :junk-allowed junk-allowed))
