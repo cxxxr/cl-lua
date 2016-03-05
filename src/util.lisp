@@ -94,11 +94,10 @@
                      "^[0-9]+")
     (when (and (= start res-start)
                (or junk-allowed (= end res-end)))
-      (return-from lua-parse-number-dec
-        (multiple-value-bind (value index)
-            (read-from-string string
-                              t
-                              nil
-                              :start res-start
-                              :end res-end)
-          (values value index))))))
+      (multiple-value-bind (value index)
+          (read-from-string string
+                            t
+                            nil
+                            :start res-start
+                            :end res-end)
+        (values value index)))))
