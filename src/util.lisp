@@ -9,7 +9,8 @@
    :length=1
    :string-to-bytes
    :with-accumulate
-   :collect))
+   :collect
+   :lua-parse-number-decimal))
 (in-package :cl-lua.util)
 
 (defun utf8-nbits (n)
@@ -61,3 +62,43 @@
                     `(push ,x ,',gacc)))
          ,@body)
        (nreverse ,gacc))))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun gen-with-regex-scans (vars string-var args regexes body)
+    (when regexes
+      `(multiple-value-bind ,vars
+	   (ppcre:scan ,(car regexes) ,string-var ,@args)
+	 (if (or ,@vars)
+             (progn ,@body)
+             ,(gen-with-regex-scans vars
+                                    string-var
+                                    args
+                                    (cdr regexes)
+                                    body))))))
+
+(defmacro with-regex-scans (((&rest vars) (string-var &rest args)
+                             &rest regexes)
+                            &body body)
+  (gen-with-regex-scans vars string-var args regexes body))
+
+(defun lua-parse-number-decimal (string
+                                 &key
+                                   (start 0)
+                                   (end (length string))
+                                   junk-allowed)
+  (with-regex-scans ((res-start res-end)
+                     (string :start start :end end)
+                     "^[0-9]+\\.(?:[0-9]+(?:[eE][+\\-]?[0-9]+)?)?"
+                     "^\\.[0-9]+(?:[eE][+\\-]?[0-9]+)?"
+                     "^[0-9]+[eE][+\\-]?[0-9]+"
+                     "^[0-9]+")
+    (when (and (= start res-start)
+               (or junk-allowed (= end res-end)))
+      (return-from lua-parse-number-dec
+        (multiple-value-bind (value index)
+            (read-from-string string
+                              t
+                              nil
+                              :start res-start
+                              :end res-end)
+          (values value index))))))
