@@ -295,8 +295,8 @@
                    (let ((code (char-code c)))
                      (if (<= 0 code 255)
                          (vector-push-extend code chars)
-                         (loop :for code :across (unicode-to-utf8 code)
-                               :do (vector-push-extend code chars))))))))))
+                         (dolist (code (unicode-to-utf8 code))
+                           (vector-push-extend code chars))))))))))
 
 (defun try-scan-long-string (lexer)
   (multiple-value-bind (s e)

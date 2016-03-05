@@ -68,7 +68,8 @@
 		      "'1\\x611'"
 		      "'\\061\\062\\063'"
 		      "'foo\\061\\062\\063bar'"
-		      "'\\u{3042}\\u{3043}\\u{3044}'" ))
+		      "'\\u{3042}\\u{3043}\\u{3044}'"
+                      "'あいうえお'"))
 	(MAKE-TOKEN (BABEL:STRING-TO-OCTETS "abc") :TAG "string" :LINUM 1)
 	(MAKE-TOKEN (BABEL:STRING-TO-OCTETS "abc") :TAG "string" :LINUM 3)
 	(MAKE-TOKEN
@@ -89,7 +90,8 @@
 	(MAKE-TOKEN (BABEL:STRING-TO-OCTETS "foo=>?bar") :TAG "string" :LINUM 7)
 	(MAKE-TOKEN
 	 (BABEL:STRING-TO-OCTETS (MAP 'STRING #'CODE-CHAR (VECTOR 12354 12355 12356)))
-	 :TAG "string" :LINUM 7)))
+	 :TAG "string" :LINUM 7)
+        (make-token (babel:string-to-octets "あいうえお") :tag "string" :linum 7)))
 
 (defun long-string-test ()
   (test "[[abcd]]"
