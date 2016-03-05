@@ -64,19 +64,21 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun gen-slot-names (name slots)
     (loop :for slot :in slots
-          :collect (symbolicate name "-" slot))))
+          :collect (symbolicate name "-" slot)))
+  (defun gen-slot-accessors (name slots)
+    (with-gensyms (gast)
+      (let ((slot-names (gen-slot-names name slots)))
+        (loop :for slot-name :in slot-names
+              :for n :from 1 :by 1
+              :collect `(defun ,slot-name (,gast)
+                          (,(intern (format nil "~:@(~:R~)" n))
+                           (ast-args ,gast))))))))
 
 (defmacro define-ast (name &rest slots)
-  (with-gensyms (gast)
-    (let ((slot-names (gen-slot-names name slots))
-          (keyword (intern (string name) :keyword)))
-      `(progn
-         (pushnew ,keyword *ast-names*)
-         ,@(loop :for slot-name :in slot-names
-                 :for n :from 1 :by 1
-                 :collect `(defun ,slot-name (,gast)
-                             (,(intern (format nil "~:@(~:R~)" n))
-                              (ast-args ,gast))))))))
+  (let ((keyword (intern (string name) :keyword)))
+    `(progn
+       (pushnew ,keyword *ast-names*)
+       ,@(gen-slot-accessors name slots))))
 
 (define-ast block stats)
 (define-ast return explist)
