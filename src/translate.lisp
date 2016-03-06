@@ -4,13 +4,15 @@
    :cl
    :cl-lua.util
    :cl-lua.ast
-   :cl-lua.error
-   :cl-lua.runtime)
+   :cl-lua.error)
   (:import-from
    :alexandria
    :symbolicate
    :with-gensyms
    :eswitch)
+  (:import-from
+   :cl-lua.runtime
+   :string-to-lua-string)
   (:export))
 (in-package :cl-lua.translate)
 
@@ -164,6 +166,7 @@
             (multiple-value-bind ,vars
                 ,(gen-call-function gf (list gs gvar))
               (when (cl-lua.runtime:lua-eq
+                     ,(ast-linum $ast)
                      ,var1
                      cl-lua.runtime:+lua-nil+)
                 (go ,gend-tag))
@@ -192,6 +195,7 @@
   (if (env-find *env* name)
       (string-to-runtime-symbol name)
       `(cl-lua.runtime:lua-index
+        ,(ast-linum $ast)
         ,cl-lua.runtime:+lua-env-name+
         ,(string-to-lua-string name))))
 
@@ -212,6 +216,7 @@
 
 (define-translate-single (:tableconstructor field-sequence field-pairs)
   `(cl-lua.runtime:make-lua-table
+    ,(ast-linum $ast)
     :pairs (list
             ,@(mapcar #'(lambda (elt)
                           `(cons ,(translate-single (car elt))
@@ -225,60 +230,60 @@
 (define-translate-single (:unary-op name exp)
   (eswitch (name :test #'string=)
     ("-"
-     `(cl-lua.runtime:lua-unm ,(translate-single exp)))
+     `(cl-lua.runtime:lua-unm ,(ast-linum $ast) ,(translate-single exp)))
     ("not"
-     `(cl-lua.runtime:lua-not ,(translate-single exp)))
+     `(cl-lua.runtime:lua-not ,(ast-linum $ast) ,(translate-single exp)))
     ("#"
-     `(cl-lua.runtime:lua-len ,(translate-single exp)))
+     `(cl-lua.runtime:lua-len ,(ast-linum $ast) ,(translate-single exp)))
     ("~"
-     `(cl-lua.runtime:lua-bnot ,(translate-single exp)))))
+     `(cl-lua.runtime:lua-bnot ,(ast-linum $ast) ,(translate-single exp)))))
 
 (define-translate-single (:binary-op name left right)
   (let ((left-form (translate-single left))
         (right-form (translate-single right)))
     (eswitch (name :test #'string=)
       ("+"
-       `(cl-lua.runtime:lua-add ,left-form ,right-form))
+       `(cl-lua.runtime:lua-add ,(ast-linum $ast) ,left-form ,right-form))
       ("-"
-       `(cl-lua.runtime:lua-sub ,left-form ,right-form))
+       `(cl-lua.runtime:lua-sub ,(ast-linum $ast) ,left-form ,right-form))
       ("*"
-       `(cl-lua.runtime:lua-mul ,left-form ,right-form))
+       `(cl-lua.runtime:lua-mul ,(ast-linum $ast) ,left-form ,right-form))
       ("/"
-       `(cl-lua.runtime:lua-div ,left-form ,right-form))
+       `(cl-lua.runtime:lua-div ,(ast-linum $ast) ,left-form ,right-form))
       ("//"
-       `(cl-lua.runtime:lua-idiv ,left-form ,right-form))
+       `(cl-lua.runtime:lua-idiv ,(ast-linum $ast) ,left-form ,right-form))
       ("^"
-       `(cl-lua.runtime:lua-pow ,left-form ,right-form))
+       `(cl-lua.runtime:lua-pow ,(ast-linum $ast) ,left-form ,right-form))
       ("%"
-       `(cl-lua.runtime:lua-mod ,left-form ,right-form))
+       `(cl-lua.runtime:lua-mod ,(ast-linum $ast) ,left-form ,right-form))
       ("&"
-       `(cl-lua.runtime:lua-band ,left-form ,right-form))
+       `(cl-lua.runtime:lua-band ,(ast-linum $ast) ,left-form ,right-form))
       ("~"
-       `(cl-lua.runtime:lua-bxor ,left-form ,right-form))
+       `(cl-lua.runtime:lua-bxor ,(ast-linum $ast) ,left-form ,right-form))
       ("|"
-       `(cl-lua.runtime:lua-bor ,left-form ,right-form))
+       `(cl-lua.runtime:lua-bor ,(ast-linum $ast) ,left-form ,right-form))
       (">>"
-       `(cl-lua.runtime:lua-shr,left-form ,right-form))
+       `(cl-lua.runtime:lua-shr,left-form ,(ast-linum $ast) ,right-form))
       ("<<"
-       `(cl-lua.runtime:lua-shl ,left-form ,right-form))
+       `(cl-lua.runtime:lua-shl ,(ast-linum $ast) ,left-form ,right-form))
       (".."
-       `(cl-lua.runtime:lua-concat ,left-form ,right-form))
+       `(cl-lua.runtime:lua-concat ,(ast-linum $ast) ,left-form ,right-form))
       ("<"
-       `(cl-lua.runtime:lua-lt ,left-form ,right-form))
+       `(cl-lua.runtime:lua-lt ,(ast-linum $ast) ,left-form ,right-form))
       ("<="
-       `(cl-lua.runtime:lua-le ,left-form ,right-form))
+       `(cl-lua.runtime:lua-le ,(ast-linum $ast) ,left-form ,right-form))
       (">"
-       `(cl-lua.runtime:lua-gt ,left-form ,right-form))
+       `(cl-lua.runtime:lua-gt ,(ast-linum $ast) ,left-form ,right-form))
       (">="
-       `(cl-lua.runtime:lua-ge ,left-form ,right-form))
+       `(cl-lua.runtime:lua-ge ,(ast-linum $ast) ,left-form ,right-form))
       ("=="
-       `(cl-lua.runtime:lua-eq ,left-form ,right-form))
+       `(cl-lua.runtime:lua-eq ,(ast-linum $ast) ,left-form ,right-form))
       ("~="
-       `(cl-lua.runtime:lua-ne ,left-form ,right-form))
+       `(cl-lua.runtime:lua-ne ,(ast-linum $ast) ,left-form ,right-form))
       ("and"
-       `(cl-lua.runtime:lua-and ,left-form ,right-form))
+       `(cl-lua.runtime:lua-and ,(ast-linum $ast) ,left-form ,right-form))
       ("or"
-       `(cl-lua.runtime:lua-or ,left-form ,right-form)))))
+       `(cl-lua.runtime:lua-or ,(ast-linum $ast) ,left-form ,right-form)))))
 
 (define-translate-single (:function parameters body)
   (with-gensyms (gargs)
@@ -296,6 +301,7 @@
 
 (define-translate-single (:index key value)
   `(cl-lua.runtime:lua-index
+    ,(ast-linum $ast)
     ,(translate-single key)
     ,(translate-single value)))
 
@@ -310,7 +316,8 @@
   (with-gensyms (gvalue)
     `(let ((,gvalue ,(translate-single prefix)))
        (multiple-value-call
-           (cl-lua.runtime:lua-index ,gvalue
+           (cl-lua.runtime:lua-index ,(ast-linum $ast)
+                                     ,gvalue
                                      ,(string-to-lua-string name))
          ,gvalue
          ,@(mapcar #'translate-single args)))))
