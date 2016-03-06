@@ -83,16 +83,6 @@
              stream
              (format nil
                      "unexpected token ~A"
-                     (parser-error-token-value condition)))
-     #-(and)
-     (report condition
-             stream
-             (format nil
-                     "expected-tag = '~A'~@
-              actual-tag = '~A'~@
-              token = ~A"
-                     (parser-error-expected-tag condition)
-                     (parser-error-actual-tag condition)
                      (parser-error-token-value condition))))))
 
 (define-condition translate-error (lua-error)
