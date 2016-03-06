@@ -272,7 +272,8 @@
           (names (mapcar #'(lambda (name)
                              (make-ast :string
                                        (token-linum name)
-                                       (string-to-lua-string (token-value name))))
+                                       (string-to-lua-string
+                                        (token-value name))))
                          (append names
                                  (if method-name
                                      (list method-name))))))
