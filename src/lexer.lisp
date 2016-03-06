@@ -280,25 +280,12 @@
 		    :tag "string"
 		    :linum start-linum)))))
 
-(defun try-scan-decimal-number (lexer)
+(defun try-scan-number (lexer)
   (when (lexer-scan lexer "^\(?:\\.[0-9]|[0-9]\)")
     (multiple-value-bind (value end)
-        (lua-parse-number-decimal (lexer-line lexer)
-                                  :start (lexer-column lexer)
-                                  :junk-allowed t)
-      (unless value
-        (lexer-error lexer "malformed number"))
-      (setf (lexer-column lexer) end)
-      (make-token value
-                  :tag "number"
-                  :linum (lexer-linum lexer)))))
-
-(defun try-scan-hex-number (lexer)
-  (when (lexer-scan lexer "^0[xX]")
-    (multiple-value-bind (value end)
-        (lua-parse-number-hex (lexer-line lexer)
-                              :start (lexer-column lexer)
-                              :junk-allowed t)
+        (lua-parse-number (lexer-line lexer)
+                          :start (lexer-column lexer)
+                          :junk-allowed t)
       (unless value
         (lexer-error lexer "malformed number"))
       (setf (lexer-column lexer) end)
@@ -316,8 +303,7 @@
     (let ((token (or (try-scan-word lexer)
 		     (try-scan-string lexer)
 		     (try-scan-long-string lexer)
-		     (try-scan-hex-number lexer)
-		     (try-scan-decimal-number lexer)
+                     (try-scan-number lexer)
 		     (try-scan-operator lexer))))
       (when token
 	(return-from lex token))
