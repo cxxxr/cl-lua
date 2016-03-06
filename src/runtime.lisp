@@ -12,22 +12,22 @@
    :lua-string
    :make-lua-string
    :string-to-lua-string
-   :lua-minus
+   :lua-unm
    :lua-not
    :lua-len
-   :lua-lognot-unary
+   :lua-bnot
    :lua-add
    :lua-sub
    :lua-mul
    :lua-div
-   :lua-ndiv
+   :lua-idiv
    :lua-pow
    :lua-mod
-   :lua-logand
-   :lua-lognot
-   :lua-logior
-   :lua-rshift
-   :lua-lshift
+   :lua-band
+   :lua-bxor
+   :lua-bor
+   :lua-shl
+   :lua-shr
    :lua-concat
    :lua-lt
    :lua-le
@@ -37,7 +37,7 @@
    :lua-ne
    :lua-and
    :lua-or
-   :lua-get-table))
+   :lua-index))
 (in-package :cl-lua.runtime)
 
 (defvar +lua-nil+ (make-symbol "NIL"))
@@ -144,7 +144,7 @@
   (check-type string string)
   (babel:string-to-octets string))
 
-(defun lua-minus (x)
+(defun lua-unm (x)
   (declare (ignore x)))
 
 (defun lua-not (x)
@@ -153,7 +153,7 @@
 (defun lua-len (x)
   (declare (ignore x)))
 
-(defun lua-lognot-unary (x)
+(defun lua-bnot (x)
   (declare (ignore x)))
 
 (defun lua-add (x y)
@@ -172,7 +172,7 @@
   (declare (ignore x y))
   )
 
-(defun lua-ndiv (x y)
+(defun lua-idiv (x y)
   (declare (ignore x y))
   )
 
@@ -184,23 +184,23 @@
   (declare (ignore x y))
   )
 
-(defun lua-logand (x y)
+(defun lua-band (x y)
   (declare (ignore x y))
   )
 
-(defun lua-lognot (x y)
+(defun lua-bxor (x y)
   (declare (ignore x y))
   )
 
-(defun lua-logior (x y)
+(defun lua-bor (x y)
   (declare (ignore x y))
   )
 
-(defun lua-rshift (x y)
+(defun lua-shr (x y)
   (declare (ignore x y))
   )
 
-(defun lua-lshift (x y)
+(defun lua-shl (x y)
   (declare (ignore x y))
   )
 
@@ -240,9 +240,9 @@
   (declare (ignore x y))
   )
 
-(defun lua-get-table (table key)
+(defun lua-index (table key)
   (declare (ignore table key))
   )
 
-(defun (setf lua-get-table) (new-value table key)
+(defun (setf lua-index) (new-value table key)
   (declare (ignore new-value table key)))

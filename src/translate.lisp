@@ -191,7 +191,7 @@
 (define-translate-single (:var name)
   (if (env-find *env* name)
       (string-to-runtime-symbol name)
-      `(cl-lua.runtime:lua-get-table
+      `(cl-lua.runtime:lua-index
         ,cl-lua.runtime:+lua-env-name+
         ,(string-to-lua-string name))))
 
@@ -225,13 +225,13 @@
 (define-translate-single (:unary-op name exp)
   (eswitch (name :test #'string=)
     ("-"
-     `(cl-lua.runtime:lua-minus ,(translate-single exp)))
+     `(cl-lua.runtime:lua-unm ,(translate-single exp)))
     ("not"
      `(cl-lua.runtime:lua-not ,(translate-single exp)))
     ("#"
      `(cl-lua.runtime:lua-len ,(translate-single exp)))
     ("~"
-     `(cl-lua.runtime:lua-lognot-unary ,(translate-single exp)))))
+     `(cl-lua.runtime:lua-bnot ,(translate-single exp)))))
 
 (define-translate-single (:binary-op name left right)
   (let ((left-form (translate-single left))
@@ -246,21 +246,21 @@
       ("/"
        `(cl-lua.runtime:lua-div ,left-form ,right-form))
       ("//"
-       `(cl-lua.runtime:lua-ndiv ,left-form ,right-form))
+       `(cl-lua.runtime:lua-idiv ,left-form ,right-form))
       ("^"
        `(cl-lua.runtime:lua-pow ,left-form ,right-form))
       ("%"
        `(cl-lua.runtime:lua-mod ,left-form ,right-form))
       ("&"
-       `(cl-lua.runtime:lua-logand ,left-form ,right-form))
+       `(cl-lua.runtime:lua-band ,left-form ,right-form))
       ("~"
-       `(cl-lua.runtime:lua-lognot ,left-form ,right-form))
+       `(cl-lua.runtime:lua-bxor ,left-form ,right-form))
       ("|"
-       `(cl-lua.runtime:lua-logior ,left-form ,right-form))
+       `(cl-lua.runtime:lua-bor ,left-form ,right-form))
       (">>"
-       `(cl-lua.runtime:lua-rshift,left-form ,right-form))
+       `(cl-lua.runtime:lua-shr,left-form ,right-form))
       ("<<"
-       `(cl-lua.runtime:lua-lshift ,left-form ,right-form))
+       `(cl-lua.runtime:lua-shl ,left-form ,right-form))
       (".."
        `(cl-lua.runtime:lua-concat ,left-form ,right-form))
       ("<"
@@ -295,7 +295,7 @@
               (translate-single body)))))))
 
 (define-translate-single (:index key value)
-  `(cl-lua.runtime:lua-get-table
+  `(cl-lua.runtime:lua-index
     ,(translate-single key)
     ,(translate-single value)))
 
@@ -310,8 +310,8 @@
   (with-gensyms (gvalue)
     `(let ((,gvalue ,(translate-single prefix)))
        (multiple-value-call
-           (cl-lua.runtime:lua-get-table ,gvalue
-                                         ,(string-to-lua-string name))
+           (cl-lua.runtime:lua-index ,gvalue
+                                     ,(string-to-lua-string name))
          ,gvalue
          ,@(mapcar #'translate-single args)))))
 
