@@ -5,7 +5,7 @@
    :cl-lua.util
    :cl-lua.ast
    :cl-lua.error
-   :cl-lua.lua-object)
+   :cl-lua.runtime)
   (:import-from
    :alexandria
    :symbolicate

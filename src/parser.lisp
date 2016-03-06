@@ -3,7 +3,7 @@
   (:use
    :cl
    :cl-lua.util
-   :cl-lua.lua-object
+   :cl-lua.runtime
    :cl-lua.lexer
    :cl-lua.error
    :cl-lua.token

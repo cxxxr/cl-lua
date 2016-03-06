@@ -5,7 +5,7 @@
    :cl-lua.token
    :cl-lua.error
    :cl-lua.util
-   :cl-lua.lua-object)
+   :cl-lua.runtime)
   (:import-from
    :alexandria
    :with-gensyms)

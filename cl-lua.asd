@@ -7,14 +7,13 @@
   :components ((:module "src"
                 :serial t
                 :components ((:file "util")
-                             (:file "lua-object")
                              (:file "token")
                              (:file "error")
+                             (:file "runtime")
                              (:file "lexer")
                              (:file "ast")
                              (:file "convert")
                              (:file "parser")
-                             (:file "runtime")
                              (:file "translate"))))
   :depends-on (:cl-ppcre :alexandria :babel)
   :in-order-to ((test-op (test-op cl-lua-test))))
