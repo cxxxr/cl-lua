@@ -4,7 +4,10 @@
   (:export
    :lua-parse-number-decimal
    :lua-parse-number-hex
-   :lua-parse-number))
+   :lua-parse-number
+   :lua-string
+   :make-lua-string
+   :string-to-lua-string))
 (in-package :cl-lua.lua-object)
 
 (defun lua-parse-number-decimal (string
@@ -74,3 +77,15 @@
            :start start
            :end end
            :junk-allowed junk-allowed))
+
+(deftype lua-string (&optional n)
+  `(simple-array (unsigned-byte 8) (,n)))
+
+(defun make-lua-string (n)
+  (make-array n
+              :element-type '(unsigned-byte 8)
+              :initial-element 0))
+
+(defun string-to-lua-string (string)
+  (check-type string string)
+  (babel:string-to-octets string))

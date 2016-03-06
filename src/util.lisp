@@ -7,7 +7,6 @@
   (:export
    :unicode-to-utf8
    :length=1
-   :string-to-bytes
    :with-accumulate
    :collect
    :with-regex-scans
@@ -36,21 +35,6 @@
        (cond ((<= #x80 code #x7ff) 2)
 	     ((<= #x800 code #xffff) 3)
 	     ((<= #x10000 code #x1fffff) 4)))))
-
-(defun string-to-char-list (string)
-  (let ((code-list)
-        (n 0))
-    (loop :for c :across string
-          :do (dolist (code (unicode-to-utf8 (char-code c)))
-                (push code code-list)
-                (incf n)))
-    (values (nreverse code-list) n)))
-
-(defun string-to-bytes (string)
-  (check-type string string)
-  (multiple-value-bind (code-list)
-      (string-to-char-list string)
-    (coerce code-list '(vector (unsigned-byte 8)))))
 
 (defun length=1 (list)
   (and (consp list)

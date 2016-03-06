@@ -16,5 +16,5 @@
                              (:file "parser")
                              (:file "runtime")
                              (:file "translate"))))
-  :depends-on (:cl-ppcre :alexandria)
+  :depends-on (:cl-ppcre :alexandria :babel)
   :in-order-to ((test-op (test-op cl-lua-test))))

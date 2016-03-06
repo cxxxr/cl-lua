@@ -177,8 +177,7 @@
                   ((char= c quote-char)
                    (incf (lexer-column lexer))
                    (return-from try-scan-string
-                     (make-token (coerce (nreverse chars)
-                                         '(simple-array (unsigned-byte 8) (*)))
+                     (make-token (coerce (nreverse chars) 'lua-string)
                                  :tag "string"
                                  :linum start-linum)))
                   ((char= c #\\)
@@ -260,23 +259,24 @@
       (lexer-scan lexer "^\\[=*\\[")
     (when s
       (let ((start-linum (lexer-linum lexer))
-	    (vector (make-array 10
-				:element-type '(unsigned-byte 8)
-				:adjustable t
-				:fill-pointer 0)))
+            (lua-string (make-lua-string 0)))
 	(if (= e (length (lexer-line lexer)))
             (next-line lexer)
             (setf (lexer-column lexer) e))
 	(scan-long-string lexer
 			  (- e s 2)
 			  (lambda (str newline-p)
-			    (loop :for c :across str :do
-			      (dolist (code (unicode-to-utf8 (char-code c)))
-				(vector-push-extend code vector)))
+                            (setf lua-string
+                                  (concatenate 'lua-string
+                                               lua-string
+                                               (string-to-lua-string str)))
 			    (when newline-p
-			      (vector-push-extend (char-code #\newline)
-                                                  vector))))
-	(make-token vector
+                              (setf lua-string
+                                    (concatenate 'lua-string
+                                                 lua-string
+                                                 (string-to-lua-string
+                                                  (string #\newline)))))))
+	(make-token lua-string
 		    :tag "string"
 		    :linum start-linum)))))
 

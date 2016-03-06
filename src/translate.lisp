@@ -4,7 +4,8 @@
    :cl
    :cl-lua.util
    :cl-lua.ast
-   :cl-lua.error)
+   :cl-lua.error
+   :cl-lua.lua-object)
   (:import-from
    :alexandria
    :symbolicate
@@ -192,7 +193,7 @@
       (string-to-runtime-symbol name)
       `(cl-lua.runtime:lua-get-table
         ,cl-lua.runtime:+lua-env-name+
-        ,(string-to-bytes name))))
+        ,(string-to-lua-string name))))
 
 (define-translate-single (:nil)
   cl-lua.runtime:+lua-nil+)
@@ -310,7 +311,7 @@
     `(let ((,gvalue ,(translate-single prefix)))
        (multiple-value-call
            (cl-lua.runtime:lua-get-table ,gvalue
-                                         ,(string-to-bytes name))
+                                         ,(string-to-lua-string name))
          ,gvalue
          ,@(mapcar #'translate-single args)))))
 

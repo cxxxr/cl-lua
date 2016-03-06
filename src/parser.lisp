@@ -3,6 +3,7 @@
   (:use
    :cl
    :cl-lua.util
+   :cl-lua.lua-object
    :cl-lua.lexer
    :cl-lua.error
    :cl-lua.token
@@ -271,7 +272,7 @@
           (names (mapcar #'(lambda (name)
                              (make-ast :string
                                        (token-linum name)
-                                       (string-to-bytes (token-value name))))
+                                       (string-to-lua-string (token-value name))))
                          (append names
                                  (if method-name
                                      (list method-name))))))
@@ -542,7 +543,7 @@
                   x
                   (make-ast :string
                             (token-linum name)
-                            (string-to-bytes
+                            (string-to-lua-string
                              (token-value name)))))))
     (("(" "{" "string")
      (let ((linum (token-linum *lookahead*)))
