@@ -2,8 +2,6 @@
 (defpackage :cl-lua.lua-object
   (:use :cl :cl-lua.util)
   (:export
-   :lua-parse-number-decimal
-   :lua-parse-number-hex
    :lua-parse-number
    :lua-string
    :make-lua-string
