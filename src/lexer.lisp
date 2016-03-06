@@ -36,12 +36,11 @@
        (let ((,lexer (make-lexer ,gstream)))
          ,@body))))
 
-(defun lexer-error (lexer string &rest args)
-  (error 'lexer-error
-	 :text (apply #'format nil string args)
+(defun raise-lexer-error (lexer condition)
+  (error condition
 	 :linum (lexer-linum lexer)
-	 :near (lexer-line lexer)
-         :stream (lexer-stream lexer)))
+         :stream (lexer-stream lexer)
+	 :near (subseq (lexer-line lexer) (lexer-column lexer))))
 
 (defun lexer-scan (lexer regex)
   (ppcre:scan regex
@@ -154,10 +153,7 @@
 		    :linum (lexer-linum lexer))))))
 
 (defun unfinished-string-error (lexer)
-  (lexer-error lexer "unfinished string"))
-
-(defun string-hex-error (lexer)
-  (lexer-error lexer "hexadecimal digit expected"))
+  (raise-lexer-error lexer 'unfinished-string-error))
 
 (defun ahead-char-with-eof-handle
     (lexer &optional (handler #'unfinished-string-error))
@@ -216,7 +212,7 @@
                                      (setf (aref hexstr i) c)
                                      (incf (lexer-column lexer)))
                                     (t
-                                     (string-hex-error lexer)))))
+                                     (raise-lexer-error lexer 'string-hex-error)))))
                           (push (parse-integer hexstr :radix 16)
                                 chars)))
                        ((char<= #\0 esc-char #\9)
@@ -235,7 +231,7 @@
                         (multiple-value-bind (start end)
                             (lexer-scan lexer "^{[a-zA-Z0-F]+}")
                           (unless start
-                            (lexer-error lexer "invalid escape sequence"))
+                            (raise-lexer-error lexer 'escape-sequence-error))
                           (dolist (code (unicode-to-utf8
                                          (parse-integer
                                           (subseq (lexer-line lexer)
@@ -245,7 +241,7 @@
                             (push code chars))
                           (setf (lexer-column lexer) end)))
                        (t
-                        (lexer-error lexer "invalid escape sequence")))))
+                        (raise-lexer-error lexer 'escape-sequence-error)))))
                   (t
                    (incf (lexer-column lexer))
                    (let ((code (char-code c)))
@@ -287,7 +283,7 @@
                           :start (lexer-column lexer)
                           :junk-allowed t)
       (unless value
-        (lexer-error lexer "malformed number"))
+        (raise-lexer-error lexer 'malformed-number-error))
       (setf (lexer-column lexer) end)
       (make-token value
                   :tag "number"
