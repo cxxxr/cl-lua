@@ -68,10 +68,9 @@
      (report condition stream "malformed number"))))
 
 (define-condition parser-error (lua-error)
-  ((token
-    :initarg :token
-    :reader parser-error-token
-    :type token)
+  ((value
+    :initarg :value
+    :reader parser-error-token-value)
    (expected-tag
     :initarg :expected-tag
     :reader parser-error-expected-tag)
@@ -80,13 +79,21 @@
     :reader parser-error-actual-tag))
   (:report
    (lambda (condition stream)
-     (format stream
-             "expected-tag = '~A'~@
+     (report condition
+             stream
+             (format nil
+                     "unexpected token ~A"
+                     (parser-error-token-value condition)))
+     #-(and)
+     (report condition
+             stream
+             (format nil
+                     "expected-tag = '~A'~@
               actual-tag = '~A'~@
               token = ~A"
-             (parser-error-expected-tag condition)
-             (parser-error-actual-tag condition)
-             (parser-error-token condition)))))
+                     (parser-error-expected-tag condition)
+                     (parser-error-actual-tag condition)
+                     (parser-error-token-value condition))))))
 
 (define-condition translate-error (lua-error)
   ((text

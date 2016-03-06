@@ -23,7 +23,9 @@
 
 (defun raise-parser-error (token expected-tag actual-tag)
   (error 'parser-error
-         :token token
+         :linum (token-linum token)
+         :stream (token-stream token)
+         :value (token-value token)
          :expected-tag expected-tag
          :actual-tag actual-tag))
 
