@@ -170,17 +170,15 @@
     (when (or (char= quote-char #\")
 	      (char= quote-char #\'))
       (incf (lexer-column lexer))
-      (loop :with chars := (make-array 0
-				       :fill-pointer 0
-				       :adjustable t
-				       :element-type '(unsigned-byte 8))
+      (loop :with chars := nil
 	    :and start-linum := (lexer-linum lexer)
 	    :for c := (ahead-char-with-eof-handle lexer)
 	    :do (cond
                   ((char= c quote-char)
                    (incf (lexer-column lexer))
                    (return-from try-scan-string
-                     (make-token chars
+                     (make-token (coerce (nreverse chars)
+                                         '(simple-array (unsigned-byte 8) (*)))
                                  :tag "string"
                                  :linum start-linum)))
                   ((char= c #\\)
@@ -203,7 +201,7 @@
                                       esc-char))))
                      (cond
                        (sp-char
-                        (vector-push-extend (char-code sp-char) chars))
+                        (push (char-code sp-char) chars))
                        ((char= esc-char #\z)
                         (cond ((end-column-p lexer)
                                (next-line lexer))
@@ -220,8 +218,8 @@
                                      (incf (lexer-column lexer)))
                                     (t
                                      (string-hex-error lexer)))))
-                          (vector-push-extend (parse-integer hexstr :radix 16)
-                                              chars)))
+                          (push (parse-integer hexstr :radix 16)
+                                chars)))
                        ((char<= #\0 esc-char #\9)
                         (let ((digit-str (make-string 3)))
                           (setf (aref digit-str 0) esc-char)
@@ -232,9 +230,8 @@
                                      (incf (lexer-column lexer)))
                                     (t
                                      (return)))))
-                          (vector-push-extend
-                           (parse-integer digit-str :junk-allowed t)
-                           chars)))
+                          (push (parse-integer digit-str :junk-allowed t)
+                                chars)))
                        ((char= esc-char #\u)
                         (multiple-value-bind (start end)
                             (lexer-scan lexer "^{[a-zA-Z0-F]+}")
@@ -246,7 +243,7 @@
                                                   (1+ start)
                                                   (1- end))
                                           :radix 16)))
-                            (vector-push-extend code chars))
+                            (push code chars))
                           (setf (lexer-column lexer) end)))
                        (t
                         (lexer-error lexer "invalid escape sequence")))))
@@ -254,9 +251,9 @@
                    (incf (lexer-column lexer))
                    (let ((code (char-code c)))
                      (if (<= 0 code 255)
-                         (vector-push-extend code chars)
+                         (push code chars)
                          (dolist (code (unicode-to-utf8 code))
-                           (vector-push-extend code chars))))))))))
+                           (push code chars))))))))))
 
 (defun try-scan-long-string (lexer)
   (multiple-value-bind (s e)
