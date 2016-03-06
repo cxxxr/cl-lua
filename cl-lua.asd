@@ -7,6 +7,7 @@
   :components ((:module "src"
                 :serial t
                 :components ((:file "util")
+                             (:file "lua-object")
                              (:file "token")
                              (:file "error")
                              (:file "lexer")
