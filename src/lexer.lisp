@@ -302,7 +302,7 @@
                   :stream (lexer-stream lexer)))))
 
 (defun make-eof-token (lexer)
-  (make-token nil
+  (make-token "EOF"
               :tag "eof"
               :linum (lexer-linum lexer)
               :stream (lexer-stream lexer)))
