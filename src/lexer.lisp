@@ -36,11 +36,12 @@
        (let ((,lexer (make-lexer ,gstream)))
          ,@body))))
 
-(defun raise-lexer-error (lexer condition)
+(defun raise-lexer-error (lexer condition
+                          &optional (column (lexer-column lexer)))
   (error condition
 	 :linum (lexer-linum lexer)
          :stream (lexer-stream lexer)
-	 :near (subseq (lexer-line lexer) (lexer-column lexer))))
+	 :near (subseq (lexer-line lexer) column)))
 
 (defun lexer-scan (lexer regex)
   (ppcre:scan regex
@@ -152,103 +153,109 @@
                              "word")
 		    :linum (lexer-linum lexer))))))
 
-(defun unfinished-string-error (lexer)
-  (raise-lexer-error lexer 'unfinished-string-error))
-
-(defun ahead-char-with-eof-handle
-    (lexer &optional (handler #'unfinished-string-error))
-  (if (end-column-p lexer)
-      (funcall handler lexer)
-      (ahead-char lexer)))
-
 (defun try-scan-string (lexer)
-  (let ((quote-char (ahead-char lexer)))
-    (when (or (char= quote-char #\")
-	      (char= quote-char #\'))
-      (incf (lexer-column lexer))
-      (loop :with chars := nil
-	    :and start-linum := (lexer-linum lexer)
-	    :for c := (ahead-char-with-eof-handle lexer)
-	    :do (cond
-                  ((char= c quote-char)
-                   (incf (lexer-column lexer))
-                   (return-from try-scan-string
-                     (make-token (coerce (nreverse chars) 'lua-string)
-                                 :tag "string"
-                                 :linum start-linum)))
-                  ((char= c #\\)
-                   (incf (lexer-column lexer))
-                   (let* ((esc-char (if (end-column-p lexer)
-                                        (progn
-                                          (next-line lexer)
-                                          #\newline)
-                                        (prog1 (ahead-char lexer)
-                                          (incf (lexer-column lexer)))))
-                          (sp-char (case esc-char
-                                     (#\a #\Bel)
-                                     (#\b #\Backspace)
-                                     (#\f #\Page)
-                                     (#\n #\Newline)
-                                     (#\r #\Return)
-                                     (#\t #\Tab)
-                                     (#\v #\Vt)
-                                     ((#\\ #\' #\" #\newline)
-                                      esc-char))))
-                     (cond
-                       (sp-char
-                        (push (char-code sp-char) chars))
-                       ((char= esc-char #\z)
-                        (cond ((end-column-p lexer)
-                               (next-line lexer))
-                              ((space-char-p (ahead-char lexer))
-                               (incf (lexer-column lexer)))))
-                       ((char= esc-char #\x)
-                        (let ((hexstr (make-string 2)))
-                          (dotimes (i 2)
-                            (let ((c (char-upcase
-                                      (ahead-char-with-eof-handle lexer))))
-                              (cond ((or (char<= #\0 c #\9)
-                                         (char<= #\A c #\F))
-                                     (setf (aref hexstr i) c)
-                                     (incf (lexer-column lexer)))
-                                    (t
-                                     (raise-lexer-error lexer 'string-hex-error)))))
-                          (push (parse-integer hexstr :radix 16)
-                                chars)))
-                       ((char<= #\0 esc-char #\9)
-                        (let ((digit-str (make-string 3)))
-                          (setf (aref digit-str 0) esc-char)
-                          (dotimes (i 2)
-                            (let ((c (ahead-char-with-eof-handle lexer)))
-                              (cond ((char<= #\0 c #\9)
-                                     (setf (aref digit-str (1+ i)) c)
-                                     (incf (lexer-column lexer)))
-                                    (t
-                                     (return)))))
-                          (push (parse-integer digit-str :junk-allowed t)
-                                chars)))
-                       ((char= esc-char #\u)
-                        (multiple-value-bind (start end)
-                            (lexer-scan lexer "^{[a-zA-Z0-F]+}")
-                          (unless start
-                            (raise-lexer-error lexer 'escape-sequence-error))
-                          (dolist (code (unicode-to-utf8
-                                         (parse-integer
-                                          (subseq (lexer-line lexer)
-                                                  (1+ start)
-                                                  (1- end))
-                                          :radix 16)))
-                            (push code chars))
-                          (setf (lexer-column lexer) end)))
-                       (t
-                        (raise-lexer-error lexer 'escape-sequence-error)))))
-                  (t
-                   (incf (lexer-column lexer))
-                   (let ((code (char-code c)))
-                     (if (<= 0 code 255)
-                         (push code chars)
-                         (dolist (code (unicode-to-utf8 code))
-                           (push code chars))))))))))
+  (let ((quote-char (ahead-char lexer))
+        (start-column (lexer-column lexer)))
+    (labels ((ahead-char-with-eof-handle
+                 (lexer)
+               (if (end-column-p lexer)
+                   (raise-lexer-error lexer
+                                      'unfinished-string-error
+                                      start-column)
+                   (ahead-char lexer))))
+      (when (or (char= quote-char #\")
+                (char= quote-char #\'))
+        (incf (lexer-column lexer))
+        (loop :with chars := nil
+              :and start-linum := (lexer-linum lexer)
+              :for c := (ahead-char-with-eof-handle lexer)
+              :do (cond
+                    ((char= c quote-char)
+                     (incf (lexer-column lexer))
+                     (return-from try-scan-string
+                       (make-token (coerce (nreverse chars) 'lua-string)
+                                   :tag "string"
+                                   :linum start-linum)))
+                    ((char= c #\\)
+                     (incf (lexer-column lexer))
+                     (let* ((esc-char (if (end-column-p lexer)
+                                          (progn
+                                            (setq start-column 0)
+                                            (next-line lexer)
+                                            #\newline)
+                                          (prog1 (ahead-char lexer)
+                                            (incf (lexer-column lexer)))))
+                            (sp-char (case esc-char
+                                       (#\a #\Bel)
+                                       (#\b #\Backspace)
+                                       (#\f #\Page)
+                                       (#\n #\Newline)
+                                       (#\r #\Return)
+                                       (#\t #\Tab)
+                                       (#\v #\Vt)
+                                       ((#\\ #\' #\" #\newline)
+                                        esc-char))))
+                       (cond
+                         (sp-char
+                          (push (char-code sp-char) chars))
+                         ((char= esc-char #\z)
+                          (cond ((end-column-p lexer)
+                                 (next-line lexer))
+                                ((space-char-p (ahead-char lexer))
+                                 (incf (lexer-column lexer)))))
+                         ((char= esc-char #\x)
+                          (let ((hexstr (make-string 2)))
+                            (dotimes (i 2)
+                              (let ((c (char-upcase
+                                        (ahead-char-with-eof-handle lexer))))
+                                (cond ((or (char<= #\0 c #\9)
+                                           (char<= #\A c #\F))
+                                       (setf (aref hexstr i) c)
+                                       (incf (lexer-column lexer)))
+                                      (t
+                                       (raise-lexer-error lexer
+                                                          'string-hex-error
+                                                          start-column)))))
+                            (push (parse-integer hexstr :radix 16)
+                                  chars)))
+                         ((char<= #\0 esc-char #\9)
+                          (let ((digit-str (make-string 3)))
+                            (setf (aref digit-str 0) esc-char)
+                            (dotimes (i 2)
+                              (let ((c (ahead-char-with-eof-handle lexer)))
+                                (cond ((char<= #\0 c #\9)
+                                       (setf (aref digit-str (1+ i)) c)
+                                       (incf (lexer-column lexer)))
+                                      (t
+                                       (return)))))
+                            (push (parse-integer digit-str :junk-allowed t)
+                                  chars)))
+                         ((char= esc-char #\u)
+                          (multiple-value-bind (start end)
+                              (lexer-scan lexer "^{[a-zA-Z0-F]+}")
+                            (unless start
+                              (raise-lexer-error lexer
+                                                 'escape-sequence-error
+                                                 start-column))
+                            (dolist (code (unicode-to-utf8
+                                           (parse-integer
+                                            (subseq (lexer-line lexer)
+                                                    (1+ start)
+                                                    (1- end))
+                                            :radix 16)))
+                              (push code chars))
+                            (setf (lexer-column lexer) end)))
+                         (t
+                          (raise-lexer-error lexer
+                                             'escape-sequence-error
+                                             start-column)))))
+                    (t
+                     (incf (lexer-column lexer))
+                     (let ((code (char-code c)))
+                       (if (<= 0 code 255)
+                           (push code chars)
+                           (dolist (code (unicode-to-utf8 code))
+                             (push code chars)))))))))))
 
 (defun try-scan-long-string (lexer)
   (multiple-value-bind (s e)
