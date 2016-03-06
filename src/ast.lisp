@@ -46,8 +46,8 @@
    :binary-op-right
    :function-parameters
    :function-body
-   :refer-table-key
-   :refer-table-value
+   :index-key
+   :index-value
    :call-function-fun
    :call-function-args
    :call-method-prefix
@@ -109,7 +109,7 @@
 (define-ast unary-op name exp)
 (define-ast binary-op name left right)
 (define-ast function parameters body)
-(define-ast refer-table key value)
+(define-ast index key value)
 (define-ast call-function fun args)
 (define-ast call-method prefix name args)
 (define-ast void)

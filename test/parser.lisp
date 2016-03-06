@@ -218,8 +218,8 @@
                    (:block ())))))))
   (is "function a.b.c() end"
       `(:block ((:assign
-                 ((:refer-table
-                   (:refer-table
+                 ((:index
+                   (:index
                     (:var "a")
                     (:string ,(cl-lua.runtime:string-to-lua-string "b")))
                    (:string ,(cl-lua.runtime:string-to-lua-string "c"))))
@@ -227,7 +227,7 @@
       #'equalp)
   (is "function a:b() end"
       `(:block ((:assign
-                 ((:refer-table
+                 ((:index
                    (:var "a")
                    (:string ,(cl-lua.runtime:string-to-lua-string "b"))))
                  ((:function ("self") (:block ()))))))
@@ -271,15 +271,15 @@
                                                         (:var "x")))))))))))
       #'equalp)
   (is "a.b = c"
-      `(:block ((:assign ((:refer-table
+      `(:block ((:assign ((:index
                            (:var "a")
                            (:string ,(cl-lua.runtime:string-to-lua-string "b"))))
                          ((:var "c")))))
       #'equalp)
   (is "a[b][c] = d"
       '(:block
-        ((:assign ((:refer-table
-                    (:refer-table
+        ((:assign ((:index
+                    (:index
                      (:var "a")
                      (:var "b"))
                     (:var "c")))
@@ -290,8 +290,8 @@
   (is "a.b.c:d(x)"
       `(:block
            ((:call-method
-             (:refer-table
-              (:refer-table
+             (:index
+              (:index
                (:var "a")
                (:string ,(cl-lua.runtime:string-to-lua-string "b")))
               (:string ,(cl-lua.runtime:string-to-lua-string "c")))
@@ -301,8 +301,8 @@
   (is "a.b.c:d[[foo]]"
       `(:block
            ((:call-method
-             (:refer-table
-              (:refer-table
+             (:index
+              (:index
                (:var "a")
                (:string ,(cl-lua.runtime:string-to-lua-string "b")))
               (:string ,(cl-lua.runtime:string-to-lua-string "c")))

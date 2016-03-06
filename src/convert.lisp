@@ -86,8 +86,8 @@
      (make-ast :function 1
                parameters
                (convert body)))
-    ((:refer-table key value)
-     (make-ast :refer-table 1
+    ((:index key value)
+     (make-ast :index 1
                (convert key)
                (convert value)))
     ((:call-function fun args)

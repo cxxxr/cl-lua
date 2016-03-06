@@ -294,7 +294,7 @@
            ,(let ((*label-env* (make-env)))
               (translate-single body)))))))
 
-(define-translate-single (:refer-table key value)
+(define-translate-single (:index key value)
   `(cl-lua.runtime:lua-get-table
     ,(translate-single key)
     ,(translate-single value)))

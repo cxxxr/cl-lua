@@ -277,7 +277,7 @@
                                  (if method-name
                                      (list method-name))))))
       (values (reduce #'(lambda (x y)
-                          (make-ast :refer-table
+                          (make-ast :index
                                     (token-linum name)
                                     x
                                     y))
@@ -530,7 +530,7 @@
        (let ((exp (parse-exp)))
          (exact "]")
          (parse-prefixexp-tail
-          (make-ast :refer-table
+          (make-ast :index
                     linum
                     x
                     exp)))))
@@ -538,7 +538,7 @@
      (let* ((linum (token-linum (next)))
             (name (exact "word")))
        (parse-prefixexp-tail
-        (make-ast :refer-table
+        (make-ast :index
                   linum
                   x
                   (make-ast :string
