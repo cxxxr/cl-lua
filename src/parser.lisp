@@ -21,7 +21,7 @@
 (defvar *lookahead*)
 (defvar *lookahead-undo-stack*)
 
-(defun parser-error (token expected-tag actual-tag)
+(defun raise-parser-error (token expected-tag actual-tag)
   (error 'parser-error
          :token token
          :expected-tag expected-tag
@@ -53,9 +53,9 @@
 (defun exact (expected-tag)
   (let ((tag (token-tag *lookahead*)))
     (unless (tag-equal tag expected-tag)
-      (parser-error *lookahead*
-                    expected-tag
-                    tag))
+      (raise-parser-error *lookahead*
+                          expected-tag
+                          tag))
     (next)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -94,9 +94,9 @@
 (defmacro ecase-token (&body clauses)
   (let ((tags (case-token-collect-tags clauses)))
     `(cond ,@(case-token-gen-clauses clauses)
-           (t (parser-error *lookahead*
-                            ',tags
-                            (token-tag *lookahead*))))))
+           (t (raise-parser-error *lookahead*
+                                  ',tags
+                                  (token-tag *lookahead*))))))
 
 (defun parse-block ()
   (let* ((linum (token-linum *lookahead*))
