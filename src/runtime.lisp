@@ -12,6 +12,7 @@
    :lua-string
    :make-lua-string
    :string-to-lua-string
+   :lua-object-to-string
    :lua-unm
    :lua-not
    :lua-len
@@ -143,6 +144,16 @@
 (defun string-to-lua-string (string)
   (check-type string string)
   (babel:string-to-octets string))
+
+(defun lua-string-to-string (lua-string)
+  (babel:octets-to-string lua-string))
+
+(defun lua-object-to-string (x)
+  (typecase x
+    (lua-string
+     (prin1-to-string (lua-string-to-string x)))
+    (t
+     (princ-to-string x))))
 
 (defun lua-unm (linum x)
   (declare (ignore linum x)))

@@ -7,9 +7,9 @@
   :components ((:module "src"
                 :serial t
                 :components ((:file "util")
-                             (:file "token")
-                             (:file "error")
                              (:file "runtime")
+                             (:file "error")
+                             (:file "token")
                              (:file "lexer")
                              (:file "ast")
                              (:file "convert")
