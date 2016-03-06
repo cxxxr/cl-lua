@@ -318,7 +318,6 @@
 (define-translate-single (:void))
 
 (defun translate (ast)
-  (print ast)
   (let ((*block-name* nil)
         (*env* (make-env))
         (*label-env* (make-env)))
