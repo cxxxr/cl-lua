@@ -9,6 +9,7 @@
    :token-value
    :token-tag
    :token-linum
+   :token-stream
    :make-token
    :tag-equal
    :tag-member
@@ -37,21 +38,28 @@
 (defstruct (token (:constructor make-token-internal))
   (value nil :read-only t)
   (tag "" :type string :read-only t)
-  (linum 0 :type integer :read-only t))
+  (linum 0 :type integer :read-only t)
+  (stream *standard-input* :type stream :read-only t))
 
 (defmethod print-object ((token token) stream)
   (format stream
-          "<~A:~A:~A>"
+          "<~A:~A:~A:~A>"
+          (token-stream token)
           (token-linum token)
           (token-tag token)
           (token-value token)))
 
-(defun make-token (value &key tag linum)
+(defun make-token (value &key tag linum (stream nil stream-p))
   (assert (tag-member tag *tags*))
   (check-type linum (integer 1 #.most-positive-fixnum))
-  (make-token-internal :value value
-		       :tag tag
-		       :linum linum))
+  (if stream-p
+      (make-token-internal :value value
+                           :tag tag
+                           :linum linum
+                           :stream stream)
+      (make-token-internal :value value
+                           :tag tag
+                           :linum linum)))
 
 (defun tag-equal (tag1 tag2)
   (equal tag1 tag2))

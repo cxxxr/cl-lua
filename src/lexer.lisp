@@ -139,7 +139,8 @@
       (let ((str (subseq (lexer-line lexer) s e)))
 	(make-token str
 		    :tag str
-		    :linum (lexer-linum lexer))))))
+		    :linum (lexer-linum lexer)
+                    :stream (lexer-stream lexer))))))
 
 (defun try-scan-word (lexer)
   (multiple-value-bind (s e)
@@ -151,7 +152,8 @@
 		    :tag (if (tag-member str *keyword-tags*)
                              str
                              "word")
-		    :linum (lexer-linum lexer))))))
+		    :linum (lexer-linum lexer)
+                    :stream (lexer-stream lexer))))))
 
 (defun try-scan-string (lexer)
   (let ((quote-char (ahead-char lexer))
@@ -175,7 +177,8 @@
                      (return-from try-scan-string
                        (make-token (coerce (nreverse chars) 'lua-string)
                                    :tag "string"
-                                   :linum start-linum)))
+                                   :linum start-linum
+                                   :stream (lexer-stream lexer))))
                     ((char= c #\\)
                      (incf (lexer-column lexer))
                      (let* ((esc-char (if (end-column-p lexer)
@@ -281,7 +284,8 @@
                                                   (string #\newline)))))))
 	(make-token lua-string
 		    :tag "string"
-		    :linum start-linum)))))
+		    :linum start-linum
+                    :stream (lexer-stream lexer))))))
 
 (defun try-scan-number (lexer)
   (when (lexer-scan lexer "^\(?:\\.[0-9]|[0-9]\)")
@@ -294,10 +298,14 @@
       (setf (lexer-column lexer) end)
       (make-token value
                   :tag "number"
-                  :linum (lexer-linum lexer)))))
+                  :linum (lexer-linum lexer)
+                  :stream (lexer-stream lexer)))))
 
 (defun make-eof-token (lexer)
-  (make-token nil :tag "eof" :linum (lexer-linum lexer)))
+  (make-token nil
+              :tag "eof"
+              :linum (lexer-linum lexer)
+              :stream (lexer-stream lexer)))
 
 (defun lex (lexer)
   (loop
