@@ -91,7 +91,13 @@
       (MAKE-TOKEN
        (BABEL:STRING-TO-OCTETS (MAP 'STRING #'CODE-CHAR (VECTOR 12354 12355 12356)))
        :TAG "string" :LINUM 7)
-      (make-token (babel:string-to-octets "あいうえお") :tag "string" :linum 7)))
+      (make-token (babel:string-to-octets "あいうえお") :tag "string" :linum 7))
+  (is (make-lines "'foo\\" "bar'")
+      (make-token (babel:string-to-octets (concatenate 'string
+                                                       "foo"
+                                                       (string #\newline)
+                                                       "bar"))
+                  :tag "string" :linum 1)))
 
 (defun long-string-test ()
   (is "[[abcd]]"
@@ -154,7 +160,7 @@
       (make-token 3.1415925 :tag "number" :linum 1)))
 
 (defun test ()
-  (prove:plan 134)
+  (prove:plan 135)
   (skip-space-and-comment-test)
   (operators-test)
   (word-test)
