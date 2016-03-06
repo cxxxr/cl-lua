@@ -4,4 +4,5 @@
   :components ((:module "test"
 		:serial t
 		:components ((:file "lexer")
-                             (:file "parser")))))
+                             (:file "parser")
+                             (:file "lua")))))
