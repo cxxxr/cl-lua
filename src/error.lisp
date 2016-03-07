@@ -1,6 +1,6 @@
 (in-package :cl-user)
 (defpackage :cl-lua.error
-  (:use :cl)
+  (:use :cl :cl-lua.filepos)
   (:export
    :lua-error
    :lexer-error
@@ -17,20 +17,16 @@
 (defgeneric report (condition stream text))
 
 (define-condition lua-error (simple-error)
-  ((linum
-    :initarg :linum
-    :reader lua-error-linum
-    :type integer)
-   (stream
-    :initarg :stream
-    :reader lua-error-stream
-    :type stream)))
+  ((filepos
+    :initarg :filepos
+    :reader lua-error-filepos
+    :type filepos)))
 
 (defmethod report ((condition lua-error) stream text)
   (format stream
           "~A:~D ~A"
-          (lua-error-stream condition)
-          (lua-error-linum condition)
+          (filepos-stream (lua-error-filepos condition))
+          (filepos-linum (lua-error-filepos condition))
           text))
 
 (define-condition lexer-error (lua-error)

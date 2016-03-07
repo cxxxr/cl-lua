@@ -2,6 +2,7 @@
 (defpackage :cl-lua.lexer
   (:use
    :cl
+   :cl-lua.filepos
    :cl-lua.token
    :cl-lua.error
    :cl-lua.util
@@ -40,8 +41,8 @@
 (defun raise-lexer-error (lexer condition
                           &optional (column (lexer-column lexer)))
   (error condition
-	 :linum (lexer-linum lexer)
-         :stream (lexer-stream lexer)
+         :filepos (make-filepos (lexer-stream lexer)
+                                (lexer-linum lexer))
 	 :near (subseq (lexer-line lexer) column)))
 
 (defun lexer-scan (lexer regex)
@@ -139,8 +140,8 @@
 	    (next-line lexer)
             (when (lexer-eof-p lexer)
               (error eof-error
-                     :linum (lexer-linum lexer)
-                     :stream (lexer-stream lexer)
+                     :filepos (make-filepos (lexer-stream lexer)
+                                            (lexer-linum lexer))
                      :start-linum start-linum
                      :near "<eof>"))))
 
