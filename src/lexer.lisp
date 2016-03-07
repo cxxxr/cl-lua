@@ -10,7 +10,6 @@
    :alexandria
    :with-gensyms)
   (:export
-   :lexer-error
    :make-lexer
    :with-lexer-from-string
    :lex
@@ -21,13 +20,15 @@
   stream
   line
   linum
-  column)
+  column
+  eof-p)
 
 (defun make-lexer (stream)
   (make-lexer-internal :stream stream
 		       :line ""
 		       :linum 0
-		       :column 0))
+		       :column 0
+                       :eof-p nil))
 
 (defmacro with-lexer-from-string ((lexer string) &body body)
   (check-type lexer symbol)
@@ -49,11 +50,17 @@
 	      :start (lexer-column lexer)))
 
 (defun next-line (lexer)
-  (setf (lexer-line lexer)
-	(read-line (lexer-stream lexer)))
-  (incf (lexer-linum lexer))
-  (setf (lexer-column lexer) 0)
-  lexer)
+  (unless (lexer-eof-p lexer)
+    (let ((line (read-line (lexer-stream lexer) nil)))
+      (incf (lexer-linum lexer))
+      (setf (lexer-column lexer) 0)
+      (cond ((null line)
+             (setf (lexer-eof-p lexer) t)
+             (setf (lexer-line lexer) "")
+             nil)
+            (t
+             (setf (lexer-line lexer) line)
+             t)))))
 
 (defun end-column-p (lexer)
   (>= (lexer-column lexer)
@@ -64,7 +71,8 @@
 
 (defun read-line-while-empty (lexer)
   (loop :while (end-column-p lexer)
-	:do (next-line lexer)))
+	:do (unless (next-line lexer)
+              (return))))
 
 (defun space-char-p (c)
   (member c '(#\space #\tab)))
@@ -81,8 +89,10 @@
 (defun skip-space-lines (lexer)
   (loop
     (read-line-while-empty lexer)
+    (when (lexer-eof-p lexer)
+      (return))
     (unless (skip-space lexer)
-      (return t))))
+      (return))))
 
 (defun skip-comment (lexer)
   (when (lexer-scan lexer "^--")
@@ -91,7 +101,10 @@
 	(lexer-scan lexer "^\\[=*\\[")
       (cond (start
 	     (setf (lexer-column lexer) end)
-	     (scan-long-string lexer (- end start 2) nil))
+	     (scan-long-string lexer
+                               (- end start 2)
+                               nil
+                               'unfinished-long-comment-error))
 	    (t
 	     (next-line lexer))))
     t))
@@ -102,13 +115,14 @@
     (unless (skip-comment lexer)
       (return t))))
 
-(defun scan-long-string (lexer n fn)
+(defun scan-long-string (lexer n fn eof-error)
   (loop :with regex := (ppcre:create-scanner
 			(concatenate 'string
 				     "[^\\\\]?"
 				     "\\]"
 				     (make-string n :initial-element #\=)
 				     "\\]"))
+        :and start-linum := (lexer-linum lexer)
 	:do (multiple-value-bind (s e)
 		(lexer-scan lexer regex)
 	      (when fn
@@ -122,7 +136,13 @@
 	      (when s
 		(setf (lexer-column lexer) e)
 		(return)))
-	    (next-line lexer)))
+	    (next-line lexer)
+            (when (lexer-eof-p lexer)
+              (error eof-error
+                     :linum (lexer-linum lexer)
+                     :stream (lexer-stream lexer)
+                     :start-linum start-linum
+                     :near "<eof>"))))
 
 (defun try-scan-operator (lexer)
   (multiple-value-bind (s e)
@@ -281,7 +301,8 @@
                                     (concatenate 'lua-string
                                                  lua-string
                                                  (string-to-lua-string
-                                                  (string #\newline)))))))
+                                                  (string #\newline))))))
+                          'unfinished-long-string-error)
 	(make-token lua-string
 		    :tag "string"
 		    :linum start-linum
@@ -309,8 +330,9 @@
 
 (defun lex (lexer)
   (loop
-    (handler-case (skip-space-and-comment lexer)
-      (end-of-file () (return-from lex (make-eof-token lexer))))
+    (skip-space-and-comment lexer)
+    (when (lexer-eof-p lexer)
+      (return (make-eof-token lexer)))
     (let ((token (or (try-scan-word lexer)
 		     (try-scan-string lexer)
 		     (try-scan-long-string lexer)

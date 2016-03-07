@@ -27,7 +27,12 @@
 		    "           ---]===]"
 		    ""
 		    "   +")
-	(make-token "+" :tag "+" :linum 12)))
+      (make-token "+" :tag "+" :linum 12))
+  (prove:is-error (lex-from-string "--[[
+
+")
+                  cl-lua.error:unfinished-long-comment-error)
+  )
 
 (defun operators-test ()
   (dolist (op '("..." "<<" ">>" "//" "==" "~=" "<=" ">=" "::" ".." "+" "-" "*" "/" "%" "^" "#"
@@ -151,7 +156,7 @@
       (make-token 314.16e+2 :tag "number" :linum 1)))
 
 (defun hex-number-test ()
-  (prove:is-error (lex-from-string "0x") lexer-error)
+  (prove:is-error (lex-from-string "0x") cl-lua.error:lexer-error)
   (is "0xaf1 0x1a.f1 0x.abc 0x0.1E 0xA23p-4 0X1.921FB54442D18P+1"
       (make-token #xaf1 :tag "number" :linum 1)
       (make-token 26.941406 :tag "number" :linum 1)
@@ -161,7 +166,7 @@
       (make-token 3.1415925 :tag "number" :linum 1)))
 
 (defun test ()
-  (prove:plan 135)
+  (prove:plan 338)
   (skip-space-and-comment-test)
   (operators-test)
   (word-test)

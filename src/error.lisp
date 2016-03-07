@@ -8,6 +8,8 @@
    :string-hex-error
    :escape-sequence-error
    :malformed-number-error
+   :unfinished-long-comment-error
+   :unfinished-long-string-error
    :parser-error
    :translate-error))
 (in-package :cl-lua.error)
@@ -17,10 +19,12 @@
 (define-condition lua-error (simple-error)
   ((linum
     :initarg :linum
-    :reader lua-error-linum)
+    :reader lua-error-linum
+    :type integer)
    (stream
     :initarg :stream
-    :reader lua-error-stream)))
+    :reader lua-error-stream
+    :type stream)))
 
 (defmethod report ((condition lua-error) stream text)
   (format stream
@@ -66,6 +70,32 @@
   (:report
    (lambda (condition stream)
      (report condition stream "malformed number"))))
+
+(define-condition unfinished-long-error (lexer-error)
+  ((start-linum
+    :initarg :start-linum
+    :reader unfinished-long-start-linum
+    :type integer)))
+
+(defmethod report ((condition unfinished-long-error) stream text)
+  (call-next-method condition
+                    stream
+                    (format nil
+                            "~A (starting at line ~D)"
+                            text
+                            (unfinished-long-start-linum condition))))
+
+(define-condition unfinished-long-comment-error (unfinished-long-error)
+  ()
+  (:report
+   (lambda (condition stream)
+     (report condition stream "unfinished long comment"))))
+
+(define-condition unfinished-long-string-error (unfinished-long-error)
+  ()
+  (:report
+   (lambda (condition stream)
+     (report condition stream "unfinished long string"))))
 
 (define-condition parser-error (lua-error)
   ((value
