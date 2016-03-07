@@ -12,7 +12,6 @@
    :alexandria
    :destructuring-ecase)
   (:export
-   :parser-error
    :parse
    :parse-from-string))
 (in-package :cl-lua.parser)

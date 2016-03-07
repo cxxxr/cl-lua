@@ -189,7 +189,7 @@
         ((:for "x" (:call-function (:var "f") ()) (:number 10) (:number 1)
           (:block ((:call-function (:var "print") ((:var "i")))))))))
   (prove:is-condition (parse-from-string "for x, y = 1, 10 do print(x) end")
-                      'parser-error)
+                      'cl-lua.error:parser-error)
   (is "for x in explist do print(x) end"
       '(:block
         ((:generic-for ("x") ((:var "explist"))
