@@ -4,9 +4,9 @@
   (:export :test))
 (in-package :cl-lua-test.parser)
 
-(defun is (string ast &optional (test #'equal))
-  (prove:is (parse-from-string string)
-            (cl-lua.convert:convert ast)
+(defun is (string tree &optional (test #'equal))
+  (prove:is (cl-lua.convert:ast-to-list (parse-from-string string))
+            tree
             :test test))
 
 (defun test ()
