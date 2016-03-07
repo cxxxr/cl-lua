@@ -200,8 +200,9 @@
                      (return-from try-scan-string
                        (make-token (coerce (nreverse chars) 'lua-string)
                                    :tag "string"
-                                   :filepos (make-filepos (lexer-stream-info lexer)
-                                                          start-linum))))
+                                   :filepos (make-filepos
+                                             (lexer-stream-info lexer)
+                                             start-linum))))
                     ((char= c #\\)
                      (incf (lexer-column lexer))
                      (let* ((esc-char (if (end-column-p lexer)

@@ -125,7 +125,8 @@
    (lambda (condition stream)
      (report condition
              stream
-             (format nil "no visible label ~A for <goto>" (goto-error-name condition))))))
+             (format nil "no visible label ~A for <goto>"
+                     (goto-error-name condition))))))
 
 (define-condition break-error (translate-error)
   ()
@@ -134,3 +135,6 @@
      (report condition
              stream
              "<break> not inside a loop"))))
+
+(define-condition runtime-error (lua-error)
+  ())
