@@ -8,11 +8,13 @@
   (format nil "~{~a~%~}" lines))
 
 (defun is (string &rest tokens)
-  (loop :for token1 :in (lex-from-string string)
-	:for token2 :in tokens
-        :do (prove:is (token-value token1) (token-value token2) :test #'equalp)
-            (prove:is (token-tag token1) (token-tag token2))
-            (prove:is (token-linum token1) (token-linum token2))))
+  (loop
+    :for token1 :in (lex-from-string string)
+    :for token2 :in tokens
+    :do (prove:subtest "token test"
+          (prove:is (token-value token1) (token-value token2) :test #'equalp)
+          (prove:is (token-tag token1) (token-tag token2))
+          (prove:is (token-linum token1) (token-linum token2)))))
 
 (defun skip-space-and-comment-test ()
   (is (make-lines ""
@@ -166,7 +168,7 @@
       (make-token 3.1415925 :tag "number" :linum 1)))
 
 (defun test ()
-  (prove:plan 338)
+  (prove:plan 136)
   (skip-space-and-comment-test)
   (operators-test)
   (word-test)
