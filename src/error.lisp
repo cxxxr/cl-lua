@@ -11,7 +11,8 @@
    :unfinished-long-comment-error
    :unfinished-long-string-error
    :parser-error
-   :translate-error))
+   :break-error
+   :goto-error))
 (in-package :cl-lua.error)
 
 (defgeneric report (condition stream text))
@@ -113,10 +114,23 @@
                       (parser-error-token-value condition)))))))
 
 (define-condition translate-error (lua-error)
-  ((text
-    :initarg :text
-    :reader translate-error-text
+  ())
+
+(define-condition goto-error (translate-error)
+  ((name
+    :initarg :name
+    :reader goto-error-name
     :type string))
   (:report
    (lambda (condition stream)
-     (write-line (translate-error-text condition) stream))))
+     (report condition
+             stream
+             (format nil "no visible label ~A for <goto>" (goto-error-name condition))))))
+
+(define-condition break-error (translate-error)
+  ()
+  (:report
+   (lambda (condition stream)
+     (report condition
+             stream
+             "<break> not inside a loop"))))

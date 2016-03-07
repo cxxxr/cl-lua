@@ -102,19 +102,15 @@
 (define-translate-single (:goto name)
   (if (env-find *label-env* name)
       `(go ,(string-to-runtime-symbol name))
-      (error 'translate-error
-             :text (format nil
-                           "no visible label ~A for <goto> at line ~D"
-                           name
-                           (ast-linum $ast)))))
+      (error 'goto-error
+             :name name
+             :filepos (ast-filepos $ast))))
 
 (define-translate-single (:break)
   (if (boundp '*loop-end-tag*)
       `(go ,*loop-end-tag*)
-      (error 'translate-error
-             :text (format nil
-                           "<break> at line ~D not inside a loop"
-                           (ast-linum $ast)))))
+      (error 'break-error
+             :filepos (ast-filepos $ast))))
 
 (define-translate-single (:while exp body)
   (with-gensyms (gstart-tag gend-tag)
