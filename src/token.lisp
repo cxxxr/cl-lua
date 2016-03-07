@@ -1,6 +1,6 @@
 (in-package :cl-user)
 (defpackage :cl-lua.token
-  (:use :cl)
+  (:use :cl :cl-lua.filepos)
   (:export
    :*operator-tags*
    :*keyword-tags*
@@ -8,6 +8,7 @@
    :token
    :token-value
    :token-tag
+   :token-filepos
    :token-linum
    :token-stream
    :make-token
@@ -35,11 +36,10 @@
           *operator-tags*
           *keyword-tags*))
 
-(defstruct (token (:constructor make-token-internal))
+(defstruct (token (:constructor make-token-internal (value tag filepos)))
   (value nil :read-only t)
   (tag "" :type string :read-only t)
-  (linum 0 :type integer :read-only t)
-  (stream *standard-input* :type stream :read-only t))
+  (filepos nil :type filepos :read-only t))
 
 (defmethod print-object ((token token) stream)
   (format stream
@@ -49,17 +49,21 @@
           (token-tag token)
           (token-value token)))
 
-(defun make-token (value &key tag linum (stream nil stream-p))
+(defun make-token (value &key tag linum stream)
   (assert (tag-member tag *tags*))
   (check-type linum (integer 1 #.most-positive-fixnum))
-  (if stream-p
-      (make-token-internal :value value
-                           :tag tag
-                           :linum linum
-                           :stream stream)
-      (make-token-internal :value value
-                           :tag tag
-                           :linum linum)))
+  (check-type stream (or null stream))
+  (make-token-internal value
+                       tag
+                       (make-filepos stream linum)))
+
+(defun token-linum (token)
+  (check-type token token)
+  (filepos-linum (token-filepos token)))
+
+(defun token-stream (token)
+  (check-type token token)
+  (filepos-stream (token-filepos token)))
 
 (defun tag-equal (tag1 tag2)
   (equal tag1 tag2))

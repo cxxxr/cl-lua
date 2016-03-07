@@ -7,6 +7,7 @@
   :components ((:module "src"
                 :serial t
                 :components ((:file "util")
+                             (:file "filepos")
                              (:file "runtime")
                              (:file "error")
                              (:file "token")

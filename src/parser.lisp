@@ -100,7 +100,7 @@
                                   (token-tag *lookahead*))))))
 
 (defun parse-block ()
-  (let* ((linum (token-linum *lookahead*))
+  (let* ((filepos (token-filepos *lookahead*))
          (stats (with-accumulate ()
                   (loop
                     (let ((stat (when (not (eof-p))
@@ -114,16 +114,16 @@
                              (collect stat)))))))
          (retstat (parse-retstat)))
     (make-ast :block
-              linum
+              filepos
               (if (ast-void-p retstat)
                   stats
                   (nconc stats (list retstat))))))
 
 (defun parse-retstat ()
-  (let ((linum (token-linum *lookahead*)))
+  (let ((filepos (token-filepos *lookahead*)))
     (if (accept "return")
         (prog1 (make-ast :return
-                         linum
+                         filepos
                          (if (exp-start-p)
                              (parse-explist)
                              nil))
@@ -163,18 +163,18 @@
   (when (accept "::")
     (let ((name (exact "word")))
       (exact "::")
-      (make-ast :label (token-linum name) (token-value name)))))
+      (make-ast :label (token-filepos name) (token-value name)))))
 
 (defun parse-break ()
-  (let ((linum (token-linum *lookahead*)))
+  (let ((filepos (token-filepos *lookahead*)))
     (when (accept "break")
-      (make-ast :break linum))))
+      (make-ast :break filepos))))
 
 (defun parse-goto ()
-  (let ((linum (token-linum *lookahead*)))
+  (let ((filepos (token-filepos *lookahead*)))
     (when (accept "goto")
       (let ((word (exact "word")))
-        (make-ast :goto linum (token-value word))))))
+        (make-ast :goto filepos (token-value word))))))
 
 (defun parse-do ()
   (when (accept "do")
@@ -187,24 +187,24 @@
     (exact "end")))
 
 (defun parse-while ()
-  (let ((linum (token-linum *lookahead*)))
+  (let ((filepos (token-filepos *lookahead*)))
     (when (accept "while")
       (let* ((exp (parse-exp))
              (body (parse-do-exact)))
-        (make-ast :while linum exp body)))))
+        (make-ast :while filepos exp body)))))
 
 (defun parse-repeat ()
-  (let ((linum (token-linum *lookahead*)))
+  (let ((filepos (token-filepos *lookahead*)))
     (when (accept "repeat")
       (let* ((body (parse-block))
              (exp (progn
                     (exact "until")
                     (parse-exp))))
-        (make-ast :repeat linum body exp)))))
+        (make-ast :repeat filepos body exp)))))
 
 (defun parse-if ()
   (labels ((f ()
-             (let* ((linum (token-linum *lookahead*))
+             (let* ((filepos (token-filepos *lookahead*))
                     (test (parse-exp))
                     (then (progn
                             (exact "then")
@@ -216,12 +216,12 @@
                                             (parse-block)
                                             (make-ast :void nil))
                                    (exact "end"))))))
-               (make-ast :if linum test then else))))
+               (make-ast :if filepos test then else))))
     (when (accept "if")
       (f))))
 
 (defun parse-for ()
-  (let ((linum (token-linum *lookahead*)))
+  (let ((filepos (token-filepos *lookahead*)))
     (when (accept "for")
       (let ((namelist (parse-namelist)))
         (cond ((or (and (not (length=1 namelist))
@@ -229,7 +229,7 @@
                    (accept "in"))
                (let* ((explist (parse-explist))
                       (body (parse-do-exact)))
-                 (make-ast :generic-for linum namelist explist body)))
+                 (make-ast :generic-for filepos namelist explist body)))
               ((exact "=")
                (let* ((init (parse-exp))
                       (end (progn
@@ -237,9 +237,9 @@
                              (parse-exp)))
                       (step (if (accept ",")
                                 (parse-exp)
-                                (make-ast :number linum 1))))
+                                (make-ast :number filepos 1))))
                  (make-ast :for
-                           linum
+                           filepos
                            (car namelist)
                            init
                            end
@@ -247,7 +247,7 @@
                            (parse-do-exact)))))))))
 
 (defun parse-function ()
-  (let ((linum (token-linum *lookahead*)))
+  (let ((filepos (token-filepos *lookahead*)))
     (when (accept "function")
       (multiple-value-bind (name method-p)
           (parse-funcname)
@@ -257,9 +257,9 @@
             (push "self"
                   parlist))
           (make-ast :assign
-                    linum
+                    filepos
                     (list name)
-                    (list (make-ast :function linum parlist body))))))))
+                    (list (make-ast :function filepos parlist body))))))))
 
 (defun parse-funcname ()
   (let* ((name (exact "word"))
@@ -268,11 +268,11 @@
          (method-name (when (accept ":")
                         (exact "word"))))
     (let ((var (make-ast :var
-                         (token-linum name)
+                         (token-filepos name)
                          (token-value name)))
           (names (mapcar #'(lambda (name)
                              (make-ast :string
-                                       (token-linum name)
+                                       (token-filepos name)
                                        (string-to-lua-string
                                         (token-value name))))
                          (append names
@@ -280,55 +280,55 @@
                                      (list method-name))))))
       (values (reduce #'(lambda (x y)
                           (make-ast :index
-                                    (token-linum name)
+                                    (token-filepos name)
                                     x
                                     y))
                       (cons var names))
               (if method-name t nil)))))
 
 (defun parse-local ()
-  (let ((linum (token-linum *lookahead*)))
+  (let ((filepos (token-filepos *lookahead*)))
     (when (accept "local")
       (ecase-token
-        ("function" (next) (parse-local-function linum))
-        ("word" (parse-local-vars linum))))))
+        ("function" (next) (parse-local-function filepos))
+        ("word" (parse-local-vars filepos))))))
 
-(defun parse-local-function (linum)
+(defun parse-local-function (filepos)
   (let* ((token (exact "word"))
          (var (token-value token)))
     (multiple-value-bind (parlist body)
         (parse-funcbody)
       (list
        (make-ast :local
-                 linum
+                 filepos
                  (list var)
                  (make-ast :void nil))
        (make-ast :assign
-                 linum
-                 (list (make-ast :var linum var))
+                 filepos
+                 (list (make-ast :var filepos var))
                  (list (make-ast :function
-                                 linum
+                                 filepos
                                  parlist
                                  body)))))))
 
-(defun parse-local-vars (linum)
+(defun parse-local-vars (filepos)
   (let* ((namelist (parse-namelist))
          (explist (if (accept "=")
                       (parse-explist)
                       (make-ast :void nil))))
     (make-ast :local
-              linum
+              filepos
               namelist
               explist)))
 
 (defun parse-expr-stat ()
-  (let* ((linum (token-linum *lookahead*))
+  (let* ((filepos (token-filepos *lookahead*))
          (prefixexp (parse-prefixexp)))
     (multiple-value-bind (match-p varlist explist)
         (suffixexp)
       (if match-p
           (make-ast :assign
-                    linum
+                    filepos
                     (cons prefixexp varlist)
                     explist)
           prefixexp))))
@@ -420,26 +420,26 @@
   (ecase-token
     ("nil"
      (next)
-     (make-ast :nil (token-linum *lookahead*)))
+     (make-ast :nil (token-filepos *lookahead*)))
     ("false"
      (next)
-     (make-ast :false (token-linum *lookahead*)))
+     (make-ast :false (token-filepos *lookahead*)))
     ("true"
      (next)
-     (make-ast :true (token-linum *lookahead*)))
+     (make-ast :true (token-filepos *lookahead*)))
     ("number"
      (prog1 (make-ast :number
-                      (token-linum *lookahead*)
+                      (token-filepos *lookahead*)
                       (token-value *lookahead*))
        (next)))
     ("string"
      (prog1 (make-ast :string
-                      (token-linum *lookahead*)
+                      (token-filepos *lookahead*)
                       (token-value *lookahead*))
        (next)))
     ("..."
      (prog1 (make-ast :rest
-                      (token-linum *lookahead*))
+                      (token-filepos *lookahead*))
        (next)))
     ("function"
      (parse-functiondef))
@@ -488,13 +488,13 @@
         ((:operator op-token . unary-p)
          (push (if unary-p
                    (make-ast :unary-op
-                             (token-linum op-token)
+                             (token-filepos op-token)
                              (token-value op-token)
                              (pop stack))
                    (let ((right (pop stack))
                          (left (pop stack)))
                      (make-ast :binary-op
-                               (token-linum op-token)
+                               (token-filepos op-token)
                                (token-value op-token)
                                left
                                right)))
@@ -503,22 +503,22 @@
     (car stack)))
 
 (defun parse-functiondef ()
-  (let ((linum (token-linum (exact "function"))))
+  (let ((filepos (token-filepos (exact "function"))))
     (multiple-value-bind (parlist body)
         (parse-funcbody)
       (make-ast :function
-                linum
+                filepos
                 parlist
                 body))))
 
 (defun parse-prefixexp ()
   (ecase-token
     ("word"
-     (let ((linum (token-linum *lookahead*))
+     (let ((filepos (token-filepos *lookahead*))
            (name (token-value *lookahead*)))
        (next)
        (parse-prefixexp-tail
-        (make-ast :var linum name))))
+        (make-ast :var filepos name))))
     ("("
      (next)
      (let ((exp (parse-exp)))
@@ -528,39 +528,39 @@
 (defun parse-prefixexp-tail (x)
   (case-token
     ("["
-     (let ((linum (token-linum (next))))
+     (let ((filepos (token-filepos (next))))
        (let ((exp (parse-exp)))
          (exact "]")
          (parse-prefixexp-tail
           (make-ast :index
-                    linum
+                    filepos
                     x
                     exp)))))
     ("."
-     (let* ((linum (token-linum (next)))
+     (let* ((filepos (token-filepos (next)))
             (name (exact "word")))
        (parse-prefixexp-tail
         (make-ast :index
-                  linum
+                  filepos
                   x
                   (make-ast :string
-                            (token-linum name)
+                            (token-filepos name)
                             (string-to-lua-string
                              (token-value name)))))))
     (("(" "{" "string")
-     (let ((linum (token-linum *lookahead*)))
+     (let ((filepos (token-filepos *lookahead*)))
        (parse-prefixexp-tail
         (make-ast :call-function
-                  linum
+                  filepos
                   x
                   (parse-args)))))
     (":"
-     (let* ((linum (token-linum (next)))
+     (let* ((filepos (token-filepos (next)))
             (name (exact "word"))
             (args (parse-args)))
        (parse-prefixexp-tail
         (make-ast :call-method
-                  linum
+                  filepos
                   x
                   (token-value name)
                   args))))
@@ -577,19 +577,19 @@
     ("{"
      (list (parse-tableconstructor)))
     ("string"
-     (let ((linum (token-linum *lookahead*))
+     (let ((filepos (token-filepos *lookahead*))
            (value (token-value *lookahead*)))
        (next)
-       (list (make-ast :string linum value))))))
+       (list (make-ast :string filepos value))))))
 
 (defun parse-tableconstructor ()
-  (let ((linum (token-linum *lookahead*)))
+  (let ((filepos (token-filepos *lookahead*)))
     (exact "{")
     (multiple-value-bind (field-sequence field-pairs)
         (parse-fieldlist)
       (exact "}")
       (make-ast :tableconstructor
-                linum
+                filepos
                 (or field-sequence (make-ast :void nil))
                 (or field-pairs (make-ast :void nil))))))
 
@@ -634,7 +634,7 @@
              ((and name (accept "="))
               (let* ((exp (parse-exp))
                      (key (make-ast :var
-                                    (token-linum name)
+                                    (token-filepos name)
                                     (token-value name))))
                 (values t
                         (list key exp)

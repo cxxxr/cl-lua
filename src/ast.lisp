@@ -1,6 +1,6 @@
 (in-package :cl-user)
 (defpackage :cl-lua.ast
-  (:use :cl)
+  (:use :cl :cl-lua.filepos)
   (:import-from
    :alexandria
    :with-gensyms
@@ -8,7 +8,7 @@
   (:export
    :make-ast
    :ast-name
-   :ast-linum
+   :ast-filepos
    :ast-args
    :ast-void-p
    :block-stats
@@ -57,14 +57,14 @@
 
 (defvar *ast-names* nil)
 
-(defun make-ast (name linum &rest args)
+(defun make-ast (name filepos &rest args)
   (check-type name keyword)
-  (check-type linum (or null integer))
+  (check-type filepos (or null filepos))
   (assert (member name *ast-names*))
-  (list* name linum args))
+  (list* name filepos args))
 
 (defun ast-name (ast) (car ast))
-(defun ast-linum (ast) (cadr ast))
+(defun ast-filepos (ast) (cadr ast))
 (defun ast-args (ast) (cddr ast))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
