@@ -10,7 +10,6 @@
    :token-tag
    :token-filepos
    :token-linum
-   :token-stream
    :make-token
    :tag-equal
    :tag-member
@@ -43,27 +42,18 @@
 
 (defmethod print-object ((token token) stream)
   (format stream
-          "<~A:~A:~A:~A>"
-          (token-stream token)
+          "<~D:~A:~A>"
           (token-linum token)
           (token-tag token)
           (token-value token)))
 
-(defun make-token (value &key tag linum stream)
+(defun make-token (value &key tag filepos)
   (assert (tag-member tag *tags*))
-  (check-type linum (integer 1 #.most-positive-fixnum))
-  (check-type stream (or null stream))
-  (make-token-internal value
-                       tag
-                       (make-filepos stream linum)))
+  (make-token-internal value tag filepos))
 
 (defun token-linum (token)
   (check-type token token)
   (filepos-linum (token-filepos token)))
-
-(defun token-stream (token)
-  (check-type token token)
-  (filepos-stream (token-filepos token)))
 
 (defun tag-equal (tag1 tag2)
   (equal tag1 tag2))

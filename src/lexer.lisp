@@ -19,13 +19,15 @@
 
 (defstruct (lexer (:constructor make-lexer-internal))
   stream
+  stream-info
   line
   linum
   column
   eof-p)
 
-(defun make-lexer (stream)
+(defun make-lexer (stream stream-info)
   (make-lexer-internal :stream stream
+                       :stream-info stream-info
 		       :line ""
 		       :linum 0
 		       :column 0
@@ -35,13 +37,13 @@
   (check-type lexer symbol)
   (with-gensyms (gstream)
     `(with-input-from-string (,gstream ,string)
-       (let ((,lexer (make-lexer ,gstream)))
+       (let ((,lexer (make-lexer ,gstream nil)))
          ,@body))))
 
 (defun raise-lexer-error (lexer condition
                           &optional (column (lexer-column lexer)))
   (error condition
-         :filepos (make-filepos (lexer-stream lexer)
+         :filepos (make-filepos (lexer-stream-info lexer)
                                 (lexer-linum lexer))
 	 :near (subseq (lexer-line lexer) column)))
 
@@ -140,7 +142,7 @@
 	    (next-line lexer)
             (when (lexer-eof-p lexer)
               (error eof-error
-                     :filepos (make-filepos (lexer-stream lexer)
+                     :filepos (make-filepos (lexer-stream-info lexer)
                                             (lexer-linum lexer))
                      :start-linum start-linum
                      :near "<eof>"))))
@@ -160,8 +162,8 @@
       (let ((str (subseq (lexer-line lexer) s e)))
 	(make-token str
 		    :tag str
-		    :linum (lexer-linum lexer)
-                    :stream (lexer-stream lexer))))))
+                    :filepos (make-filepos (lexer-stream-info lexer)
+                                           (lexer-linum lexer)))))))
 
 (defun try-scan-word (lexer)
   (multiple-value-bind (s e)
@@ -173,8 +175,8 @@
 		    :tag (if (tag-member str *keyword-tags*)
                              str
                              "word")
-		    :linum (lexer-linum lexer)
-                    :stream (lexer-stream lexer))))))
+                    :filepos (make-filepos (lexer-stream-info lexer)
+                                           (lexer-linum lexer)))))))
 
 (defun try-scan-string (lexer)
   (let ((quote-char (ahead-char lexer))
@@ -198,8 +200,8 @@
                      (return-from try-scan-string
                        (make-token (coerce (nreverse chars) 'lua-string)
                                    :tag "string"
-                                   :linum start-linum
-                                   :stream (lexer-stream lexer))))
+                                   :filepos (make-filepos (lexer-stream-info lexer)
+                                                          start-linum))))
                     ((char= c #\\)
                      (incf (lexer-column lexer))
                      (let* ((esc-char (if (end-column-p lexer)
@@ -306,8 +308,8 @@
                           'unfinished-long-string-error)
 	(make-token lua-string
 		    :tag "string"
-		    :linum start-linum
-                    :stream (lexer-stream lexer))))))
+                    :filepos (make-filepos (lexer-stream-info lexer)
+                                           start-linum))))))
 
 (defun try-scan-number (lexer)
   (when (lexer-scan lexer "^\(?:\\.[0-9]|[0-9]\)")
@@ -320,14 +322,14 @@
       (setf (lexer-column lexer) end)
       (make-token value
                   :tag "number"
-                  :linum (lexer-linum lexer)
-                  :stream (lexer-stream lexer)))))
+                  :filepos (make-filepos (lexer-stream-info lexer)
+                                         (lexer-linum lexer))))))
 
 (defun make-eof-token (lexer)
   (make-token "EOF"
               :tag "eof"
-              :linum (lexer-linum lexer)
-              :stream (lexer-stream lexer)))
+              :filepos (make-filepos (lexer-stream-info lexer)
+                                     (lexer-linum lexer))))
 
 (defun lex (lexer)
   (loop
@@ -345,7 +347,7 @@
 
 (defun lex-from-string (string)
   (with-input-from-string (stream string)
-    (loop :with lexer := (make-lexer stream)
+    (loop :with lexer := (make-lexer stream nil)
 	  :for token := (lex lexer)
 	  :while (not (eof-token-p token))
 	  :collect token)))

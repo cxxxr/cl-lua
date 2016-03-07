@@ -26,7 +26,7 @@
 (defmethod report ((condition lua-error) stream text)
   (format stream
           "~A:~D ~A"
-          (filepos-stream (lua-error-filepos condition))
+          (filepos-stream-info (lua-error-filepos condition))
           (filepos-linum (lua-error-filepos condition))
           text))
 
