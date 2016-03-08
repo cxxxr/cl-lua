@@ -32,6 +32,9 @@
    :generic-for-body
    :local-namelist
    :local-explist
+   :local-function-name
+   :local-function-parameters
+   :local-function-body
    :assign-varlist
    :assign-explist
    :var-name
@@ -103,6 +106,7 @@
 (define-ast for name init end step body)
 (define-ast generic-for namelist explist body)
 (define-ast local namelist explist)
+(define-ast local-function name parameters body)
 (define-ast assign varlist explist)
 (define-ast var name)
 (define-ast nil)

@@ -244,20 +244,17 @@
                  ((:call-function (:var "f") ())
                   (:call-function (:var "g") ()))))))
   (is "local function f() end"
-      '(:block ((:local ("f") (:void))
-                (:assign ((:var "f"))
-                 ((:function () (:block ())))))))
+      '(:block
+        ((:local-function "f" ()
+          (:block ())))))
   (is "local function f(x) print(x) return x, 1 end"
-      '(:block ((:local ("f") (:void))
-                (:assign ((:var "f"))
-                 ((:function ("x")
-                   (:block ((:call-function (:var "print") ((:var "x")))
-                            (:return ((:var "x") (:number 1)))))))))))
+      '(:block
+        ((:local-function "f" ("x")
+          (:block ((:call-function (:var "print") ((:var "x")))
+                   (:return ((:var "x") (:number 1)))))))))
   (is "local function f(...) print(...) end"
-      '(:block ((:local ("f") (:void))
-                (:assign ((:var "f"))
-                 ((:function (:rest)
-                   (:block ((:call-function (:var "print") ((:rest)))))))))))
+      '(:block ((:local-function "f" (:rest)
+                 (:block ((:call-function (:var "print") ((:rest)))))))))
   (is "f(nil, false, true, 123, 123.45, 'abc', ..., function (x) return x + x end)"
       `(:block ((:call-function
                  (:var "f")

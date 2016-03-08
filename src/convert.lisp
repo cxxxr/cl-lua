@@ -50,6 +50,11 @@
        ,(if (ast-void-p (local-explist ast))
             (ast-to-list (local-explist ast))
             (mapcar #'ast-to-list (local-explist ast)))))
+    ((:local-function)
+     `(:local-function
+       ,(local-function-name ast)
+       ,(local-function-parameters ast)
+       ,(ast-to-list (local-function-body ast))))
     ((:assign)
      `(:assign
        ,(mapcar #'ast-to-list (assign-varlist ast))

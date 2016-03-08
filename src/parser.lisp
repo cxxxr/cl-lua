@@ -106,10 +106,7 @@
                                   (parse-stat))))
                       (unless stat
                         (return))
-                      (cond ((consp (car stat))
-                             (dolist (s stat)
-                               (collect s)))
-                            ((not (ast-void-p stat))
+                      (cond ((not (ast-void-p stat))
                              (collect stat)))))))
          (retstat (parse-retstat)))
     (make-ast :block
@@ -294,21 +291,14 @@
 
 (defun parse-local-function (filepos)
   (let* ((token (exact "word"))
-         (var (token-value token)))
+         (name (token-value token)))
     (multiple-value-bind (parlist body)
         (parse-funcbody)
-      (list
-       (make-ast :local
-                 filepos
-                 (list var)
-                 (make-ast :void nil))
-       (make-ast :assign
-                 filepos
-                 (list (make-ast :var filepos var))
-                 (list (make-ast :function
-                                 filepos
-                                 parlist
-                                 body)))))))
+      (make-ast :local-function
+                filepos
+                name
+                parlist
+                body))))
 
 (defun parse-local-vars (filepos)
   (let* ((namelist (parse-namelist))
