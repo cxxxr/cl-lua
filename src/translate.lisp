@@ -116,7 +116,7 @@
   (with-gensyms (gstart-tag gend-tag)
     `(tagbody
         ,gstart-tag
-        (when (is-false ,(translate-single exp))
+        (when (cl-lua.runtime:lua-false-p ,(translate-single exp))
           (go ,gend-tag))
         ,(let ((*loop-end-tag* gend-tag))
            (translate-single body))
@@ -128,14 +128,14 @@
         ,gstart-tag
         ,(let ((*loop-end-tag* gend-tag))
            (translate-single body))
-        (when (is-false ,(translate-single exp))
+        (when (cl-lua.runtime:lua-false-p ,(translate-single exp))
           (go ,gstart-tag))
         ,gend-tag)))
 
 (define-translate-single (:if test then else)
-  `(if (is-true ,(translate-single test))
-       ,(translate-single then)
-       ,(translate-single else)))
+  `(if (cl-lua.runtime:lua-false-p ,(translate-single test))
+       ,(translate-single else)
+       ,(translate-single then)))
 
 (define-translate-single (:for name init end step body)
   (with-gensyms (gi glimit gstart-tag gend-tag)

@@ -13,6 +13,7 @@
    :make-lua-string
    :string-to-lua-string
    :lua-object-to-string
+   :lua-false-p
    :lua-unm
    :lua-not
    :lua-len
@@ -154,6 +155,10 @@
      (prin1-to-string (lua-string-to-string x)))
     (t
      (princ-to-string x))))
+
+(defun lua-false-p (x)
+  (or (eq x +lua-nil+)
+      (eq x +lua-false+)))
 
 (defun lua-unm (filepos x)
   (declare (ignore filepos x)))
