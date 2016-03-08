@@ -59,7 +59,9 @@
 
 (defun make-ast (name filepos &rest args)
   (check-type name keyword)
-  (assert (member name *ast-names*))
+  (let ((elt (assoc name *ast-names*)))
+    (assert elt)
+    (assert (= (length args) (cdr elt))))
   (if (eq name :void)
       (check-type filepos null)
       (check-type filepos filepos))
@@ -85,7 +87,9 @@
 (defmacro define-ast (name &rest slots)
   (let ((keyword (intern (string name) :keyword)))
     `(progn
-       (pushnew ,keyword *ast-names*)
+       (pushnew (cons ,keyword ,(length slots))
+                *ast-names*
+                :key #'car)
        ,@(gen-slot-accessors name slots))))
 
 (define-ast block stats)
