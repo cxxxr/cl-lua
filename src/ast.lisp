@@ -59,8 +59,10 @@
 
 (defun make-ast (name filepos &rest args)
   (check-type name keyword)
-  (check-type filepos (or null filepos))
   (assert (member name *ast-names*))
+  (if (eq name :void)
+      (check-type filepos null)
+      (check-type filepos filepos))
   (list* name filepos args))
 
 (defun ast-name (ast) (car ast))
