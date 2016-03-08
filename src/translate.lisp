@@ -160,7 +160,8 @@
          (tagbody
             ,gstart-tag
             (multiple-value-bind ,vars
-                ,(gen-call-function gf (list gs gvar))
+                (cl-lua.runtime:call-function
+                 ,(ast-filepos $ast) ,gf ,gs ,gvar)
               (when (cl-lua.runtime:lua-eq
                      ,(ast-filepos $ast)
                      ,var1
@@ -281,19 +282,34 @@
       ("or"
        `(cl-lua.runtime:lua-or ,(ast-filepos $ast) ,left-form ,right-form)))))
 
+(defun gen-function (parameters body)
+  (let ((rest-p))
+    (let ((args (loop :for p :in parameters
+                      :if (eq p :rest)
+                        :do (setq rest-p t)
+                      :else
+                        :collect (string-to-runtime-symbol p))))
+      (let ((rest-var (if rest-p
+                          cl-lua.runtime:+lua-rest-symbol+
+                          (gensym))))
+        `((&optional ,@args &rest ,rest-var)
+          (declare (ignorable ,@args)
+                   ,@(unless rest-p `((ignore ,rest-var))))
+          ,(let ((*label-env* (make-env))
+                 (*env* (extend-env (if rest-p
+                                        (cons rest-var args)
+                                        args)
+                                    *env*)))
+             (translate-single body)))))))
+
+(define-translate (:local-function name parameters body) (rest-stats)
+  (let* ((fname (string-to-runtime-symbol name))
+         (*env* (extend-env (list fname) *env*)))
+    `((labels ((,fname ,@(gen-function parameters body)))
+        ,@(translate-stats rest-stats)))))
+
 (define-translate-single (:function parameters body)
-  (with-gensyms (gargs)
-    `(lambda (&rest ,gargs)
-       (block nil
-         (multiple-value-bind
-               ,(mapcan #'(lambda (p)
-                            (if (eq p :rest)
-                                (list '&rest cl-lua.runtime:+lua-rest-symbol+)
-                                (list p)))
-                 parameters)
-             ,gargs
-           ,(let ((*label-env* (make-env)))
-              (translate-single body)))))))
+  `(lambda ,@(gen-function parameters body)))
 
 (define-translate-single (:index key value)
   `(cl-lua.runtime:lua-index
@@ -301,22 +317,29 @@
     ,(translate-single key)
     ,(translate-single value)))
 
-(defun gen-call-function (fun args)
-  `(multiple-value-call ,fun ,@args))
-
 (define-translate-single (:call-function fun args)
-  (gen-call-function (translate-single fun)
-                     (mapcar #'translate-single args)))
+  (if (null args)
+      `(cl-lua.runtime:call-function
+        ,(ast-filepos $ast)
+        ,(translate-single fun))
+      `(cl-lua.runtime:call-function
+        ,(ast-filepos $ast)
+        ,(translate-single fun)
+        ,@(mapcar #'(lambda (arg)
+                      `(values ,(translate-single arg)))
+                  (butlast args))
+        ,(translate-single (car (last args))))))
 
 (define-translate-single (:call-method prefix name args)
   (with-gensyms (gvalue)
     `(let ((,gvalue ,(translate-single prefix)))
-       (multiple-value-call
-           (cl-lua.runtime:lua-index ,(ast-filepos $ast)
-                                     ,gvalue
-                                     ,(string-to-lua-string name))
-         ,gvalue
-         ,@(mapcar #'translate-single args)))))
+       (cl-lua.runtime:call-function
+        ,(ast-filepos $ast)
+        (cl-lua.runtime:lua-index ,(ast-filepos $ast)
+                                  ,gvalue
+                                  ,(string-to-lua-string name))
+        ,gvalue
+        ,@(mapcar #'translate-single args)))))
 
 (define-translate-single (:void))
 

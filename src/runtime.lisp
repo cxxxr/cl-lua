@@ -39,7 +39,8 @@
    :lua-ne
    :lua-and
    :lua-or
-   :lua-index))
+   :lua-index
+   :call-function))
 (in-package :cl-lua.runtime)
 
 (defvar +lua-nil+ (make-symbol "NIL"))
@@ -161,7 +162,8 @@
       (eq x +lua-false+)))
 
 (defun lua-unm (filepos x)
-  (declare (ignore filepos x)))
+  (declare (ignore filepos x))
+  )
 
 (defun lua-not (filepos x)
   (declare (ignore filepos x)))
@@ -262,3 +264,7 @@
 
 (defun (setf lua-index) (new-value filepos table key)
   (declare (ignore filepos new-value table key)))
+
+(defun call-function (filepos fun &rest args)
+  (declare (ignore filepos fun args))
+  )
