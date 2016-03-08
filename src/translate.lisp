@@ -177,8 +177,8 @@
 (define-translate (:local namelist explist) (rest-stats)
   `((multiple-value-bind ,(mapcar #'string-to-runtime-symbol namelist)
         (values ,@(mapcar #'translate-single explist))
-      ,(let ((*env* (extend-env namelist *env*)))
-         (translate-stats rest-stats)))))
+      ,@(let ((*env* (extend-env namelist *env*)))
+          (translate-stats rest-stats)))))
 
 (define-translate-single (:assign varlist explist)
   (let ((tmp-vars (loop :for v :in varlist :collect (gensym))))
