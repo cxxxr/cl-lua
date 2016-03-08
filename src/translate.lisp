@@ -84,9 +84,13 @@
           (loop :for stat :in stats
                 :when (eq :label (ast-name stat))
                   :collect (car (ast-args stat)))))
-    (let ((form `(tagbody
-                    ,@(let ((*label-env* (extend-env label-list *label-env*)))
-                        (translate-stats stats)))))
+    (let ((form (if (null label-list)
+                    `(progn
+                       ,@(translate-stats stats))
+                    `(tagbody
+                        ,@(let ((*label-env*
+                                  (extend-env label-list *label-env*)))
+                            (translate-stats stats))))))
       (translate-concat form
                         rest-stats))))
 
