@@ -95,10 +95,18 @@
                         rest-stats))))
 
 (define-translate-single (:return explist)
-  (if (null explist)
-      `(return-from ,*block-name* cl-lua.runtime:+lua-nil+)
-      `(return-from ,*block-name*
-         (values ,@(mapcar #'translate-single explist)))))
+  (cond ((null explist)
+         `(return-from ,*block-name* cl-lua.runtime:+lua-nil+))
+        ((length=1 explist)
+         `(return-from ,*block-name*
+            (translate-single (car explist))))
+        (t
+         `(return-from ,*block-name*
+            (multiple-value-call #'values
+              ,@(mapcar #'(lambda (arg)
+                            `(values ,(translate-single arg)))
+                        (butlast explist))
+              ,(translate-single (car (last explist))))))))
 
 (define-translate-single (:label name)
   (string-to-runtime-symbol name))
