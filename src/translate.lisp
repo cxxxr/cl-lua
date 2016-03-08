@@ -208,6 +208,9 @@
         ,cl-lua.runtime:+lua-env-name+
         ,(string-to-lua-string name))))
 
+(define-translate-single (:paren exp)
+  `(values ,(translate exp)))
+
 (define-translate-single (:nil)
   cl-lua.runtime:+lua-nil+)
 
