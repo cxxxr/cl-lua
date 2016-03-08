@@ -222,7 +222,10 @@
     :sequence (vector ,@(mapcar #'translate-single field-sequence))))
 
 (define-translate-single (:rest)
-  cl-lua.runtime:+lua-rest-symbol+)
+  (if (env-find *env* cl-lua.runtime:+lua-rest-symbol+)
+      cl-lua.runtime:+lua-rest-symbol+
+      (error 'variadic-error
+             :filepos (ast-filepos $ast))))
 
 (define-translate-single (:unary-op name exp)
   (eswitch (name :test #'string=)

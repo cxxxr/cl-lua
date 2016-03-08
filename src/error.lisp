@@ -12,6 +12,7 @@
    :unfinished-long-string-error
    :parser-error
    :break-error
+   :variadic-error
    :goto-error))
 (in-package :cl-lua.error)
 
@@ -135,6 +136,14 @@
      (report condition
              stream
              "<break> not inside a loop"))))
+
+(define-condition variadic-error (translate-error)
+  ()
+  (:report
+   (lambda (condition stream)
+     (report condition
+             stream
+             "unexpected variadic"))))
 
 (define-condition runtime-error (lua-error)
   ())
