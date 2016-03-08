@@ -38,6 +38,7 @@
    :assign-varlist
    :assign-explist
    :var-name
+   :paren-exp
    :number-value
    :string-value
    :tableconstructor-field-sequence
@@ -112,6 +113,7 @@
 (define-ast nil)
 (define-ast false)
 (define-ast true)
+(define-ast paren exp)
 (define-ast number value)
 (define-ast string value)
 (define-ast tableconstructor field-sequence field-pairs)

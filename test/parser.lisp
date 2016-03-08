@@ -10,7 +10,7 @@
             :test test))
 
 (defun test ()
-  (prove:plan 55)
+  (prove:plan 56)
   (is "return"
       '(:block ((:return nil))))
   (is "return 1"
@@ -59,9 +59,10 @@
   (is "return (3+4)*2"
       '(:block
         ((:return ((:binary-op "*"
-                               (:binary-op "+"
-                                           (:number 3)
-                                           (:number 4))
+                               (:paren
+                                (:binary-op "+"
+                                            (:number 3)
+                                            (:number 4)))
                                (:number 2)))))))
   (is "return -123^456"
       '(:block
@@ -69,6 +70,9 @@
                               (:binary-op "^"
                                           (:number 123)
                                           (:number 456))))))))
+  (is "return (f())"
+      '(:block
+        ((:return ((:paren (:call-function (:var "f") ())))))))
   (is "f()g();;h()"
       '(:block
         ((:call-function (:var "f") ())

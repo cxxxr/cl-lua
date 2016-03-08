@@ -67,6 +67,8 @@
      '(:false))
     ((:true)
      '(:true))
+    ((:paren)
+     `(:paren ,(ast-to-list (paren-exp ast))))
     ((:number)
      `(:number ,(number-value ast)))
     ((:string)

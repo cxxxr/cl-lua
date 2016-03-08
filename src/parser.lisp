@@ -510,9 +510,10 @@
         (make-ast :var filepos name))))
     ("("
      (next)
-     (let ((exp (parse-exp)))
+     (let* ((filepos (token-filepos *lookahead*))
+            (exp (parse-exp)))
        (exact ")")
-       (parse-prefixexp-tail exp)))))
+       (parse-prefixexp-tail (make-ast :paren filepos exp))))))
 
 (defun parse-prefixexp-tail (x)
   (case-token
