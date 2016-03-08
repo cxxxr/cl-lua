@@ -99,7 +99,7 @@
          `(return-from ,*block-name* cl-lua.runtime:+lua-nil+))
         ((length=1 explist)
          `(return-from ,*block-name*
-            (translate-single (car explist))))
+            ,(translate-single (car explist))))
         (t
          `(return-from ,*block-name*
             (multiple-value-call #'values
