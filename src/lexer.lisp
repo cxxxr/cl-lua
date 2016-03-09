@@ -9,7 +9,8 @@
    :cl-lua.runtime)
   (:import-from
    :alexandria
-   :with-gensyms)
+   :with-gensyms
+   :once-only)
   (:export
    :make-lexer
    :with-lexer-from-string
@@ -47,10 +48,11 @@
                                 (lexer-linum lexer))
 	 :near (subseq (lexer-line lexer) column)))
 
-(defun lexer-scan (lexer regex)
-  (ppcre:scan regex
-	      (lexer-line lexer)
-	      :start (lexer-column lexer)))
+(defmacro lexer-scan (lexer regex)
+  (once-only (lexer)
+    `(ppcre:scan ,regex
+                 (lexer-line ,lexer)
+                 :start (lexer-column ,lexer))))
 
 (defun next-line (lexer)
   (unless (lexer-eof-p lexer)
@@ -116,7 +118,7 @@
   (loop
     (skip-space-lines lexer)
     (unless (skip-comment lexer)
-      (return t))))
+      (return))))
 
 (defun scan-long-string (lexer n fn eof-error)
   (loop :with regex := (ppcre:create-scanner
