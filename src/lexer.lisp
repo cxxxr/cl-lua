@@ -48,7 +48,7 @@
                                 (lexer-linum lexer))
 	 :near (subseq (lexer-line lexer) column)))
 
-(defmacro lexer-scan (lexer regex)
+(defmacro lexer-scan-regex (lexer regex)
   (once-only (lexer)
     `(ppcre:scan ,regex
                  (lexer-line ,lexer)
@@ -100,10 +100,10 @@
       (return))))
 
 (defun skip-comment (lexer)
-  (when (lexer-scan lexer "^--")
+  (when (lexer-scan-regex lexer "^--")
     (incf (lexer-column lexer) 2)
     (multiple-value-bind (start end)
-	(lexer-scan lexer "^\\[=*\\[")
+	(lexer-scan-regex lexer "^\\[=*\\[")
       (cond (start
 	     (setf (lexer-column lexer) end)
 	     (scan-long-string lexer
@@ -129,7 +129,7 @@
 				     "\\]"))
         :and start-linum := (lexer-linum lexer)
 	:do (multiple-value-bind (s e)
-		(lexer-scan lexer regex)
+		(lexer-scan-regex lexer regex)
 	      (when fn
 		(funcall fn
 			 (if (and (zerop (lexer-column lexer)) (null e))
@@ -151,14 +151,14 @@
 
 (defun try-scan-operator (lexer)
   (multiple-value-bind (s e)
-      (lexer-scan lexer
-		  `(:sequence
-		    :start-anchor
-		    (:group
-		     (:alternation
-		      . #.(sort (copy-list *operator-tags*)
-				#'>
-				:key #'length)))))
+      (lexer-scan-regex lexer
+                        `(:sequence
+                          :start-anchor
+                          (:group
+                           (:alternation
+                            . #.(sort (copy-list *operator-tags*)
+                                      #'>
+                                      :key #'length)))))
     (when s
       (setf (lexer-column lexer) e)
       (let ((str (subseq (lexer-line lexer) s e)))
@@ -169,7 +169,7 @@
 
 (defun try-scan-word (lexer)
   (multiple-value-bind (s e)
-      (lexer-scan lexer "^[a-zA-Z_][a-zA-Z0-9_]*")
+      (lexer-scan-regex lexer "^[a-zA-Z_][a-zA-Z0-9_]*")
     (when s
       (setf (lexer-column lexer) e)
       (let ((str (subseq (lexer-line lexer) s e)))
@@ -261,7 +261,7 @@
                                   chars)))
                          ((char= esc-char #\u)
                           (multiple-value-bind (start end)
-                              (lexer-scan lexer "^{[a-zA-Z0-F]+}")
+                              (lexer-scan-regex lexer "^{[a-zA-Z0-F]+}")
                             (unless start
                               (raise-lexer-error lexer
                                                  'escape-sequence-error
@@ -288,7 +288,7 @@
 
 (defun try-scan-long-string (lexer)
   (multiple-value-bind (s e)
-      (lexer-scan lexer "^\\[=*\\[")
+      (lexer-scan-regex lexer "^\\[=*\\[")
     (when s
       (let ((start-linum (lexer-linum lexer))
             (lua-string (make-lua-string 0)))
@@ -315,7 +315,7 @@
                                            start-linum))))))
 
 (defun try-scan-number (lexer)
-  (when (lexer-scan lexer "^\(?:\\.[0-9]|[0-9]\)")
+  (when (lexer-scan-regex lexer "^\(?:\\.[0-9]|[0-9]\)")
     (multiple-value-bind (value end)
         (lua-parse-number (lexer-line lexer)
                           :start (lexer-column lexer)
