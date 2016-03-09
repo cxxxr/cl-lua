@@ -4,17 +4,17 @@
 (in-package :cl-lua-asd)
 
 (defsystem :cl-lua
-  :components ((:module "src"
-                :serial t
-                :components ((:file "util")
-                             (:file "filepos")
-                             (:file "runtime")
-                             (:file "error")
-                             (:file "token")
-                             (:file "lexer")
-                             (:file "ast")
-                             (:file "convert")
-                             (:file "parser")
-                             (:file "translate"))))
+  :serial t
+  :components ((:file "src/util")
+               (:file "src/filepos")
+               (:file "src/lua-object")
+               (:file "src/error")
+               (:file "src/token")
+               (:file "src/lexer")
+               (:file "src/ast")
+               (:file "src/convert")
+               (:file "src/parser")
+               (:file "src/runtime")
+               (:file "src/translate"))
   :depends-on (:cl-ppcre :alexandria :babel)
   :in-order-to ((test-op (test-op cl-lua-test))))

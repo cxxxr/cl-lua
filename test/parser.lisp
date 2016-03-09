@@ -96,12 +96,12 @@
   (is "func('abc')"
       `(:block ((:call-function
                  (:var "func")
-                 ((:string ,(cl-lua.runtime:string-to-lua-string "abc"))))))
+                 ((:string ,(cl-lua.lua-object:string-to-lua-string "abc"))))))
       #'equalp)
   (is "func'abc'"
       `(:block ((:call-function
                  (:var "func")
-                 ((:string ,(cl-lua.runtime:string-to-lua-string "abc"))))))
+                 ((:string ,(cl-lua.lua-object:string-to-lua-string "abc"))))))
       #'equalp)
   (is "func{1,2,3}"
       '(:block
@@ -119,8 +119,8 @@
            ((:assign
              ((:var "a"))
              ((:tableconstructor
-               ((:string ,(cl-lua.runtime:string-to-lua-string "x"))
-                (:string ,(cl-lua.runtime:string-to-lua-string "y"))
+               ((:string ,(cl-lua.lua-object:string-to-lua-string "x"))
+                (:string ,(cl-lua.lua-object:string-to-lua-string "y"))
                 (:call-function (:var "f") ((:var "x")))
                 (:number 45))
                (((:call-function (:var "f") ((:number 1)))
@@ -225,15 +225,15 @@
                  ((:index
                    (:index
                     (:var "a")
-                    (:string ,(cl-lua.runtime:string-to-lua-string "b")))
-                   (:string ,(cl-lua.runtime:string-to-lua-string "c"))))
+                    (:string ,(cl-lua.lua-object:string-to-lua-string "b")))
+                   (:string ,(cl-lua.lua-object:string-to-lua-string "c"))))
                  ((:function () (:block ()))))))
       #'equalp)
   (is "function a:b() end"
       `(:block ((:assign
                  ((:index
                    (:var "a")
-                   (:string ,(cl-lua.runtime:string-to-lua-string "b"))))
+                   (:string ,(cl-lua.lua-object:string-to-lua-string "b"))))
                  ((:function ("self") (:block ()))))))
       #'equalp)
   (is "local x"
@@ -263,7 +263,7 @@
       `(:block ((:call-function
                  (:var "f")
                  ((:nil) (:false) (:true) (:number 123) (:number 123.45)
-                  (:string ,(cl-lua.runtime:string-to-lua-string "abc"))
+                  (:string ,(cl-lua.lua-object:string-to-lua-string "abc"))
                   (:rest)
                   (:function ("x")
                              (:block
@@ -274,7 +274,7 @@
   (is "a.b = c"
       `(:block ((:assign ((:index
                            (:var "a")
-                           (:string ,(cl-lua.runtime:string-to-lua-string "b"))))
+                           (:string ,(cl-lua.lua-object:string-to-lua-string "b"))))
                          ((:var "c")))))
       #'equalp)
   (is "a[b][c] = d"
@@ -294,8 +294,8 @@
              (:index
               (:index
                (:var "a")
-               (:string ,(cl-lua.runtime:string-to-lua-string "b")))
-              (:string ,(cl-lua.runtime:string-to-lua-string "c")))
+               (:string ,(cl-lua.lua-object:string-to-lua-string "b")))
+              (:string ,(cl-lua.lua-object:string-to-lua-string "c")))
              "d"
              ((:var "x")))))
       #'equalp)
@@ -305,9 +305,9 @@
              (:index
               (:index
                (:var "a")
-               (:string ,(cl-lua.runtime:string-to-lua-string "b")))
-              (:string ,(cl-lua.runtime:string-to-lua-string "c")))
+               (:string ,(cl-lua.lua-object:string-to-lua-string "b")))
+              (:string ,(cl-lua.lua-object:string-to-lua-string "c")))
              "d"
-             ((:string ,(cl-lua.runtime:string-to-lua-string "foo"))))))
+             ((:string ,(cl-lua.lua-object:string-to-lua-string "foo"))))))
       #'equalp)
   (prove:finalize))

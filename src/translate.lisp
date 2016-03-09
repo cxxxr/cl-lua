@@ -11,7 +11,7 @@
    :with-gensyms
    :eswitch)
   (:import-from
-   :cl-lua.runtime
+   :cl-lua.lua-object
    :string-to-lua-string)
   (:export))
 (in-package :cl-lua.translate)
@@ -227,14 +227,7 @@
   value)
 
 (define-translate-single (:tableconstructor field-sequence field-pairs)
-  `(cl-lua.runtime:make-lua-table
-    ,(ast-filepos $ast)
-    :pairs (list
-            ,@(mapcar #'(lambda (elt)
-                          `(cons ,(translate-single (car elt))
-                                 ,(translate-single (cadr elt))))
-                      field-pairs))
-    :sequence (vector ,@(mapcar #'translate-single field-sequence))))
+  )
 
 (define-translate-single (:rest)
   (if (env-find *env* cl-lua.runtime:+lua-rest-symbol+)

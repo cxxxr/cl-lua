@@ -1,6 +1,9 @@
 (in-package :cl-user)
 (defpackage :cl-lua.error
   (:use :cl :cl-lua.filepos)
+  (:import-from
+   :cl-lua.lua-object
+   :lua-object-to-string)
   (:export
    :lua-error
    :lexer-error
@@ -111,7 +114,7 @@
              stream
              (format nil
                      "unexpected token ~A"
-                     (cl-lua.runtime:lua-object-to-string
+                     (lua-object-to-string
                       (parser-error-token-value condition)))))))
 
 (define-condition translate-error (lua-error)

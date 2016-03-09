@@ -3,7 +3,6 @@
   (:use
    :cl
    :cl-lua.util
-   :cl-lua.runtime
    :cl-lua.lexer
    :cl-lua.error
    :cl-lua.token
@@ -11,6 +10,9 @@
   (:import-from
    :alexandria
    :destructuring-ecase)
+  (:import-from
+   :cl-lua.lua-object
+   :string-to-lua-string)
   (:export
    :parse
    :parse-from-string))
