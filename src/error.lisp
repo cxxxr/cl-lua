@@ -1,12 +1,10 @@
 (in-package :cl-user)
 (defpackage :cl-lua.error
-  (:use :cl :cl-lua.filepos)
-  (:import-from
-   :cl-lua.lua-object
-   :lua-object-to-string)
+  (:use
+   :cl
+   :cl-lua.filepos
+   :cl-lua.lua-object)
   (:export
-   :lua-error
-   :lexer-error
    :unfinished-string-error
    :string-hex-error
    :escape-sequence-error

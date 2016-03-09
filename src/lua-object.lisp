@@ -1,10 +1,6 @@
 (in-package :cl-user)
 (defpackage :cl-lua.lua-object
-  (:use :cl)
-  (:import-from
-   :cl-lua.util
-   :with-regex-scans
-   :with-regex-groups)
+  (:use :cl :cl-lua.util)
   (:export
    :lua-parse-number
    :lua-string

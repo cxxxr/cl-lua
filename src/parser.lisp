@@ -6,13 +6,11 @@
    :cl-lua.lexer
    :cl-lua.error
    :cl-lua.token
-   :cl-lua.ast)
+   :cl-lua.ast
+   :cl-lua.lua-object)
   (:import-from
    :alexandria
    :destructuring-ecase)
-  (:import-from
-   :cl-lua.lua-object
-   :string-to-lua-string)
   (:export
    :parse
    :parse-from-string))

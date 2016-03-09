@@ -4,15 +4,13 @@
    :cl
    :cl-lua.util
    :cl-lua.ast
-   :cl-lua.error)
+   :cl-lua.error
+   :cl-lua.lua-object)
   (:import-from
    :alexandria
    :symbolicate
    :with-gensyms
    :eswitch)
-  (:import-from
-   :cl-lua.lua-object
-   :string-to-lua-string)
   (:export))
 (in-package :cl-lua.translate)
 

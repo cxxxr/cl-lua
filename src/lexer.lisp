@@ -4,18 +4,13 @@
    :cl
    :cl-lua.filepos
    :cl-lua.token
-   :cl-lua.error
-   :cl-lua.util)
+   :cl-lua.lua-object
+   :cl-lua.util
+   :cl-lua.error)
   (:import-from
    :alexandria
    :with-gensyms
    :once-only)
-  (:import-from
-   :cl-lua.lua-object
-   :string-to-lua-string
-   :lua-parse-number
-   :lua-string
-   :make-lua-string)
   (:export
    :make-lexer
    :with-lexer-from-string
