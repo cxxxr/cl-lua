@@ -108,7 +108,7 @@
       (return))))
 
 (defun skip-comment (lexer)
-  (when (lexer-scan-regex lexer "^--")
+  (when (lexer-scan lexer "--")
     (incf (lexer-column lexer) 2)
     (multiple-value-bind (start end)
 	(lexer-scan-regex lexer "^\\[=*\\[")
