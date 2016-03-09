@@ -54,6 +54,14 @@
                  (lexer-line ,lexer)
                  :start (lexer-column ,lexer))))
 
+(defun lexer-scan (lexer string)
+  (string= (lexer-line lexer)
+           string
+           :start1 (lexer-column lexer)
+           :end1 (min (+ (lexer-column lexer)
+                         (length string))
+                      (length (lexer-line lexer)))))
+
 (defun next-line (lexer)
   (unless (lexer-eof-p lexer)
     (let ((line (read-line (lexer-stream lexer) nil)))
@@ -149,23 +157,20 @@
                      :start-linum start-linum
                      :near "<eof>"))))
 
-(defun try-scan-operator (lexer)
-  (multiple-value-bind (s e)
-      (lexer-scan-regex lexer
-                        `(:sequence
-                          :start-anchor
-                          (:group
-                           (:alternation
-                            . #.(sort (copy-list *operator-tags*)
-                                      #'>
-                                      :key #'length)))))
-    (when s
-      (setf (lexer-column lexer) e)
-      (let ((str (subseq (lexer-line lexer) s e)))
-	(make-token str
-		    :tag str
-                    :filepos (make-filepos (lexer-stream-info lexer)
-                                           (lexer-linum lexer)))))))
+(let ((operators
+        (sort (copy-list *operator-tags*)
+              #'>
+              :key #'length)))
+  (defun try-scan-operator (lexer)
+    (dolist (op operators)
+      (when (lexer-scan lexer op)
+        (incf (lexer-column lexer)
+              (length op))
+        (return
+          (make-token op
+                      :tag op
+                      :filepos (make-filepos (lexer-stream-info lexer)
+                                             (lexer-linum lexer))))))))
 
 (defun try-scan-word (lexer)
   (multiple-value-bind (s e)
