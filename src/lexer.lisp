@@ -129,27 +129,27 @@
       (return))))
 
 (defun scan-long-string (lexer n fn eof-error)
-  (loop :with regex := (ppcre:create-scanner
-			(concatenate 'string
-				     "[^\\\\]?"
-				     "\\]"
-				     (make-string n :initial-element #\=)
-				     "\\]"))
+  (loop :with string := (concatenate 'string
+                                     "]"
+                                     (make-string n :initial-element #\=)
+                                     "]")
         :and start-linum := (lexer-linum lexer)
-	:do (multiple-value-bind (s e)
-		(lexer-scan-regex lexer regex)
-	      (when fn
-		(funcall fn
-			 (if (and (zerop (lexer-column lexer)) (null e))
+        :do (let ((pos (search string
+                               (lexer-line lexer)
+                               :start2 (lexer-column lexer))))
+              (when fn
+                (funcall fn
+                         (if (and (null pos)
+                                  (zerop (lexer-column lexer)))
                              (lexer-line lexer)
                              (subseq (lexer-line lexer)
                                      (lexer-column lexer)
-                                     (if e (- e (+ n 2)))))
-			 (not s)))
-	      (when s
-		(setf (lexer-column lexer) e)
-		(return)))
-	    (next-line lexer)
+                                     pos))
+                         (null pos)))
+              (when pos
+                (setf (lexer-column lexer) (+ pos 2 n))
+                (return)))
+            (next-line lexer)
             (when (lexer-eof-p lexer)
               (error eof-error
                      :filepos (make-filepos (lexer-stream-info lexer)
