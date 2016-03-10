@@ -577,8 +577,8 @@
       (exact "}")
       (make-ast :tableconstructor
                 filepos
-                (or field-sequence (make-ast :void nil))
-                (or field-pairs (make-ast :void nil))))))
+                (or field-sequence nil)
+                (or field-pairs nil)))))
 
 (defun parse-fieldlist ()
   (cond

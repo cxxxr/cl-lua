@@ -108,12 +108,12 @@
         ((:call-function (:var "func")
           ((:tableconstructor
             ((:number 1) (:number 2) (:number 3))
-            (:void)))))))
+            nil))))))
   (is "a={1,2,3}"
       '(:block
         ((:assign ((:var "a"))
           ((:tableconstructor ((:number 1) (:number 2) (:number 3))
-            (:void)))))))
+            nil))))))
   (is "a = { [f(1)] = g; \"x\", \"y\"; x = 1, f(x), [30] = 23; 45 }"
       `(:block
            ((:assign
