@@ -8,33 +8,33 @@
    :+lua-rest-symbol+
    :+lua-env-name+
    :lua-false-p
-   :lua-unm
    :lua-not
-   :lua-len
-   :lua-bnot
+   :lua-and
+   :lua-or
    :lua-add
    :lua-sub
    :lua-mul
    :lua-div
-   :lua-idiv
-   :lua-pow
    :lua-mod
+   :lua-pow
+   :lua-unm
+   :lua-idiv
    :lua-band
-   :lua-bxor
    :lua-bor
+   :lua-bxor
+   :lua-bnot
    :lua-shl
    :lua-shr
    :lua-concat
+   :lua-len
+   :lua-eq
+   :lua-ne
    :lua-lt
    :lua-le
    :lua-gt
    :lua-ge
-   :lua-eq
-   :lua-ne
-   :lua-and
-   :lua-or
    :lua-index
-   :call-function))
+   :lua-call))
 (in-package :cl-lua.runtime)
 
 (defvar +lua-nil+ (make-symbol "NIL"))
@@ -47,110 +47,86 @@
   (or (eq x +lua-nil+)
       (eq x +lua-false+)))
 
-(defun lua-unm (filepos x)
-  (declare (ignore filepos x))
-  )
-
 (defun lua-not (filepos x)
+  (declare (ignore filepos)))
+
+(defun lua-and (filepos x y)
+  (declare (ignore filepos)))
+
+(defun lua-or (filepos x y)
+  (declare (ignore filepos)))
+
+(defun lua-add (filepos x y)
+  (declare (ignore filepos x y)))
+
+(defun lua-sub (filepos x y)
+  (declare (ignore filepos x y)))
+
+(defun lua-mul (filepos x y)
+  (declare (ignore filepos x y)))
+
+(defun lua-div (filepos x y)
+  (declare (ignore filepos x y)))
+
+(defun lua-mod (filepos x y)
+  (declare (ignore filepos x y)))
+
+(defun lua-pow (filepos x y)
+  (declare (ignore filepos x y)))
+
+(defun lua-unm (filepos x)
   (declare (ignore filepos x)))
 
-(defun lua-len (filepos x)
-  (declare (ignore filepos x)))
+(defun lua-idiv (filepos x y)
+  (declare (ignore filepos x y)))
+
+(defun lua-band (filepos x y)
+  (declare (ignore filepos x y)))
+
+(defun lua-bor (filepos x y)
+  (declare (ignore filepos x y)))
+
+(defun lua-bxor (filepos x y)
+  (declare (ignore filepos x y)))
 
 (defun lua-bnot (filepos x)
   (declare (ignore filepos x)))
 
-(defun lua-add (filepos x y)
-  (declare (ignore filepos x y))
-  )
-
-(defun lua-sub (filepos x y)
-  (declare (ignore filepos x y))
-  )
-
-(defun lua-mul (filepos x y)
-  (declare (ignore filepos x y))
-  )
-
-(defun lua-div (filepos x y)
-  (declare (ignore filepos x y))
-  )
-
-(defun lua-idiv (filepos x y)
-  (declare (ignore filepos x y))
-  )
-
-(defun lua-pow (filepos x y)
-  (declare (ignore filepos x y))
-  )
-
-(defun lua-mod (filepos x y)
-  (declare (ignore filepos x y))
-  )
-
-(defun lua-band (filepos x y)
-  (declare (ignore filepos x y))
-  )
-
-(defun lua-bxor (filepos x y)
-  (declare (ignore filepos x y))
-  )
-
-(defun lua-bor (filepos x y)
-  (declare (ignore filepos x y))
-  )
+(defun lua-shl (filepos x y)
+  (declare (ignore filepos x y)))
 
 (defun lua-shr (filepos x y)
-  (declare (ignore filepos x y))
-  )
-
-(defun lua-shl (filepos x y)
-  (declare (ignore filepos x y))
-  )
+  (declare (ignore filepos x y)))
 
 (defun lua-concat (filepos x y)
-  (declare (ignore filepos x y))
-  )
+  (declare (ignore filepos x y)))
 
-(defun lua-lt (filepos x y)
-  (declare (ignore filepos x y))
-  )
-
-(defun lua-le (filepos x y)
-  (declare (ignore filepos x y))
-  )
-
-(defun lua-gt (filepos x y)
-  (declare (ignore filepos x y))
-  )
-
-(defun lua-ge (filepos x y)
-  (declare (ignore filepos x y))
-  )
+(defun lua-len (filepos x)
+  (declare (ignore filepos x)))
 
 (defun lua-eq (filepos x y)
-  (declare (ignore filepos x y))
-  )
+  (declare (ignore filepos x y)))
 
 (defun lua-ne (filepos x y)
-  (declare (ignore filepos x y))
-  )
+  (declare (ignore filepos x y)))
 
-(defun lua-and (filepos x y)
-  (declare (ignore filepos x y))
-  )
+(defun lua-lt (filepos x y)
+  (declare (ignore filepos x y)))
 
-(defun lua-or (filepos x y)
-  (declare (ignore filepos x y))
-  )
+(defun lua-le (filepos x y)
+  (declare (ignore filepos x y)))
+
+(defun lua-gt (filepos x y)
+  (declare (ignore filepos x y)))
+
+(defun lua-ge (filepos x y)
+  (declare (ignore filepos x y)))
 
 (defun lua-index (filepos table key)
-  (declare (ignore filepos table key))
-  )
+  (declare (ignore filepos table key)))
 
 (defun (setf lua-index) (new-value filepos table key)
   (declare (ignore filepos new-value table key)))
 
-(defun call-function (filepos fun &rest args)
-  (declare (ignore filepos fun args))
-  )
+(defun lua-call (filepos fun &rest args)
+  (declare (ignore filepos fun args)))

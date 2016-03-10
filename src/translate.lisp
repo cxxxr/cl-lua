@@ -172,7 +172,7 @@
          (tagbody
             ,gstart-tag
             (multiple-value-bind ,vars
-                (cl-lua.runtime:call-function
+                (cl-lua.runtime:lua-call
                  ,(ast-filepos $ast) ,gf ,gs ,gvar)
               (when (cl-lua.runtime:lua-eq
                      ,(ast-filepos $ast)
@@ -352,10 +352,10 @@
 
 (define-translate-single (:call-function fun args)
   (if (null args)
-      `(cl-lua.runtime:call-function
+      `(cl-lua.runtime:lua-call
         ,(ast-filepos $ast)
         ,(translate-single fun))
-      `(cl-lua.runtime:call-function
+      `(cl-lua.runtime:lua-call
         ,(ast-filepos $ast)
         ,(translate-single fun)
         ,@(mapcar #'(lambda (arg)
@@ -366,7 +366,7 @@
 (define-translate-single (:call-method prefix name args)
   (with-gensyms (gvalue)
     `(let ((,gvalue ,(translate-single prefix)))
-       (cl-lua.runtime:call-function
+       (cl-lua.runtime:lua-call
         ,(ast-filepos $ast)
         (cl-lua.runtime:lua-index ,(ast-filepos $ast)
                                   ,gvalue

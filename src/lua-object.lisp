@@ -7,7 +7,8 @@
    :lua-string
    :make-lua-string
    :string-to-lua-string
-   :lua-object-to-string))
+   :lua-object-to-string
+   :lua-string-to-number))
 (in-package :cl-lua.lua-object)
 
 (defstruct lua-table
@@ -103,3 +104,9 @@
      (prin1-to-string (lua-string-to-string x)))
     (t
      (princ-to-string x))))
+
+(defun lua-string-to-number (lua-string)
+  (lua-parse-number
+   (string-trim '(#\space #\tab)
+                (lua-string-to-string lua-string))))
+
