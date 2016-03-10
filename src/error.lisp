@@ -5,13 +5,14 @@
    :cl-lua.filepos
    :cl-lua.lua-object)
   (:export
+   :lexer-error
    :unfinished-string-error
    :string-hex-error
    :escape-sequence-error
    :malformed-number-error
    :unfinished-long-comment-error
    :unfinished-long-string-error
-   :parser-error
+   :syntax-error
    :break-error
    :variadic-error
    :goto-error))
@@ -96,16 +97,10 @@
    (lambda (condition stream)
      (report condition stream "unfinished long string"))))
 
-(define-condition parser-error (lua-error)
+(define-condition syntax-error (lua-error)
   ((value
     :initarg :value
-    :reader parser-error-token-value)
-   (expected-tag
-    :initarg :expected-tag
-    :reader parser-error-expected-tag)
-   (actual-tag
-    :initarg :actual-tag
-    :reader parser-error-actual-tag))
+    :reader syntax-error-value))
   (:report
    (lambda (condition stream)
      (report condition
@@ -113,7 +108,7 @@
              (format nil
                      "unexpected token ~A"
                      (lua-object-to-string
-                      (parser-error-token-value condition)))))))
+                      (syntax-error-value condition)))))))
 
 (define-condition translate-error (lua-error)
   ())

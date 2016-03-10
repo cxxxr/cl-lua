@@ -20,12 +20,10 @@
 (defvar *lookahead*)
 (defvar *lookahead-undo-stack*)
 
-(defun raise-parser-error (token expected-tag actual-tag)
-  (error 'parser-error
+(defun syntax-error (token)
+  (error 'syntax-error
          :filepos (token-filepos token)
-         :value (token-value token)
-         :expected-tag expected-tag
-         :actual-tag actual-tag))
+         :value (token-value token)))
 
 (defun pushback (token)
   (push *lookahead* *lookahead-undo-stack*)
@@ -53,9 +51,7 @@
 (defun exact (expected-tag)
   (let ((tag (token-tag *lookahead*)))
     (unless (tag-equal tag expected-tag)
-      (raise-parser-error *lookahead*
-                          expected-tag
-                          tag))
+      (syntax-error *lookahead*))
     (next)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -93,10 +89,9 @@
 
 (defmacro ecase-token (&body clauses)
   (let ((tags (case-token-collect-tags clauses)))
+    (declare (ignore tags))
     `(cond ,@(case-token-gen-clauses clauses)
-           (t (raise-parser-error *lookahead*
-                                  ',tags
-                                  (token-tag *lookahead*))))))
+           (t (syntax-error *lookahead*)))))
 
 (defun parse-block ()
   (let* ((filepos (token-filepos *lookahead*))
