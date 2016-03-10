@@ -110,10 +110,7 @@
                      (lua-object-to-string
                       (syntax-error-value condition)))))))
 
-(define-condition translate-error (lua-error)
-  ())
-
-(define-condition goto-error (translate-error)
+(define-condition goto-error (syntax-error)
   ((name
     :initarg :name
     :reader goto-error-name
@@ -125,7 +122,7 @@
              (format nil "no visible label ~A for <goto>"
                      (goto-error-name condition))))))
 
-(define-condition break-error (translate-error)
+(define-condition break-error (syntax-error)
   ()
   (:report
    (lambda (condition stream)
@@ -133,7 +130,7 @@
              stream
              "<break> not inside a loop"))))
 
-(define-condition variadic-error (translate-error)
+(define-condition variadic-error (syntax-error)
   ()
   (:report
    (lambda (condition stream)
