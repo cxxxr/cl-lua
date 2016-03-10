@@ -28,13 +28,14 @@
 (defun make-env ()
   nil)
 
-(defun extend-env (vars env)
-  (list vars env))
+(defun extend-env-vars (vars env)
+  (append vars env))
+
+(defun extend-env-var (var env)
+  (cons var env))
 
 (defun env-find (env var)
-  (dolist (vars env)
-    (when (find var vars :test #'equal)
-      (return t))))
+  (find var env :test #'equal))
 
 (defun translate-dispatch (ast rest-stats)
   (assert (gethash (ast-name ast) *translators*))
@@ -87,7 +88,7 @@
                        ,@(translate-stats stats))
                     `(tagbody
                         ,@(let ((*label-env*
-                                  (extend-env label-list *label-env*)))
+                                  (extend-env-vars label-list *label-env*)))
                             (translate-stats stats))))))
       (translate-concat form
                         rest-stats))))
@@ -155,7 +156,7 @@
           ,gstart-tag
           (when (> ,gi ,glimit) (go ,gend-tag))
           ,(let ((*loop-end-tag* gend-tag)
-                 (*env* (extend-env (list name) *env*)))
+                 (*env* (extend-env-var name *env*)))
              (translate-single body))
           (incf ,gi)
           (go ,gstart-tag)
@@ -179,7 +180,7 @@
                 (go ,gend-tag))
               (setf ,gvar ,var1)
               ,(let ((*loop-end-tag* gend-tag)
-                     (*env* (extend-env namelist *env*)))
+                     (*env* (extend-env-vars namelist *env*)))
                  (translate-single body)))
             (go ,gstart-tag)
             ,gend-tag)))))
@@ -187,7 +188,7 @@
 (define-translate (:local namelist explist) (rest-stats)
   `((multiple-value-bind ,(mapcar #'string-to-runtime-symbol namelist)
         (values ,@(mapcar #'translate-single explist))
-      ,@(let ((*env* (extend-env namelist *env*)))
+      ,@(let ((*env* (extend-env-vars namelist *env*)))
           (translate-stats rest-stats)))))
 
 (define-translate-single (:assign varlist explist)
@@ -305,15 +306,15 @@
           (declare (ignorable ,@args)
                    ,@(unless rest-p `((ignore ,rest-var))))
           ,(let ((*label-env* (make-env))
-                 (*env* (extend-env (if rest-p
-                                        (cons rest-var args)
-                                        args)
+                 (*env* (extend-env-vars (if rest-p
+                                             (cons rest-var args)
+                                             args)
                                     *env*)))
              (translate-single body)))))))
 
 (define-translate (:local-function name parameters body) (rest-stats)
   (let* ((fname (string-to-runtime-symbol name))
-         (*env* (extend-env (list fname) *env*)))
+         (*env* (extend-env-var fname *env*)))
     `((labels ((,fname ,@(gen-function parameters body)))
         ,@(translate-stats rest-stats)))))
 
