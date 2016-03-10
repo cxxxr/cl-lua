@@ -11,7 +11,8 @@
    :symbolicate
    :with-gensyms
    :eswitch)
-  (:export))
+  (:export
+   :translate))
 (in-package :cl-lua.translate)
 
 (defvar *loop-end-tag*)
@@ -226,7 +227,29 @@
   value)
 
 (define-translate-single (:tableconstructor field-sequence field-pairs)
-  )
+  (with-gensyms (gtable-var glength gend-tag)
+    (let ((seqlen (length field-sequence)))
+      `(let ((,gtable-var (make-hash-table :test #'equalp))
+             (,glength ,seqlen))
+         ,@(loop :for (k v) :in field-pairs
+                 :for kcode := (translate-single k)
+                 :for vcode := (translate-single v)
+                 :collect `(setf (gethash ,kcode ,gtable-var) ,vcode))
+         ,@(loop :for elt :in field-sequence
+                 :for n :from 1
+                 :collect `(setf (gethash ,n ,gtable-var)
+                                 ,(translate-single elt)))
+         ,@(unless (null field-pairs)
+             `((tagbody
+                  ,@(loop :for n
+                          :from (1+ seqlen)
+                            :to (+ seqlen (length field-pairs))
+                          :collect `(if (gethash ,n ,gtable-var)
+                                        (incf ,glength)
+                                        (go ,gend-tag)))
+                  ,gend-tag)))
+         (make-lua-table :hash-table ,gtable-var
+                         :sequence-length ,glength)))))
 
 (define-translate-single (:rest)
   (if (env-find *env* cl-lua.runtime:+lua-rest-symbol+)

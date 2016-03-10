@@ -2,6 +2,7 @@
 (defpackage :cl-lua.lua-object
   (:use :cl :cl-lua.util)
   (:export
+   :make-lua-table
    :lua-parse-number
    :lua-string
    :make-lua-string
