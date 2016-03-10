@@ -308,29 +308,31 @@
 (defun parse-expr-stat ()
   (let* ((filepos (token-filepos *lookahead*))
          (prefixexp (parse-prefixexp)))
-    (multiple-value-bind (match-p varlist explist)
-        (suffixexp)
-      (if match-p
-          (make-ast :assign
-                    filepos
-                    (cons prefixexp varlist)
-                    explist)
-          prefixexp))))
+    (case-token
+      (("=" ",")
+       (unless (member (ast-name prefixexp) '(:var :index))
+         (syntax-error *lookahead*))
+       (multiple-value-bind (varlist explist) (suffixexp)
+         (make-ast :assign
+                   filepos
+                   (cons prefixexp varlist)
+                   explist)))
+      (otherwise
+       prefixexp))))
 
 (defun suffixexp ()
   (labels ((f (varlist)
              (ecase-token
                ("="
                 (next)
-                (values t
-                        (nreverse varlist)
+                (values (nreverse varlist)
                         (parse-explist)))
                (","
                 (next)
                 (f (cons (parse-prefixexp) varlist))))))
     (cond ((accept "=")
-           (values t nil (parse-explist)))
-          ((accept ",")
+           (values nil (parse-explist)))
+          ((exact ",")
            (f (list (parse-prefixexp)))))))
 
 (defun parse-funcbody ()
