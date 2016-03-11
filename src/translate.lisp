@@ -380,5 +380,7 @@
   (let ((*block-name* nil)
         (*env* (make-env))
         (*label-env* (make-env)))
-    `(block ,*block-name*
-       ,(translate-single ast))))
+    `(let ((,cl-lua.runtime:+lua-env-name+ (make-hash-table)))
+       (declare (ignorable ,cl-lua.runtime:+lua-env-name+))
+       (block ,*block-name*
+         ,(translate-single ast)))))
