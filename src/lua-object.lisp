@@ -2,6 +2,10 @@
 (defpackage :cl-lua.lua-object
   (:use :cl :cl-lua.util)
   (:export
+   :lua-table
+   :lua-table-p
+   :lua-table-hash-table
+   :lua-table-sequence-length
    :make-lua-table
    :lua-parse-number
    :lua-string
@@ -109,4 +113,3 @@
   (lua-parse-number
    (string-trim '(#\space #\tab)
                 (lua-string-to-string lua-string))))
-
