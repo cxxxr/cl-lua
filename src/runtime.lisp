@@ -7,7 +7,8 @@
    :cl-lua.error)
   (:import-from
    :alexandria
-   :with-gensyms)
+   :with-gensyms
+   :once-only)
   (:export
    :+lua-nil+
    :+lua-false+
@@ -408,15 +409,16 @@
        (or (metamethod table key value)
            (index-error filepos table))))))
 
-(defun lua-call (filepos fun &rest args)
-  (typecase fun
-    (function
-     (apply fun args))
-    (otherwise
-     (or (call-metamethod apply :__call fun args)
-         (runtime-error filepos
-                        "attempt to call a ~A value"
-                        fun)))))
+(defmacro lua-call (filepos fun &rest args)
+  (once-only (fun)
+    `(typecase ,fun
+       (function
+        (multiple-value-call ,fun ,@args))
+       (otherwise
+        (or (call-metamethod multiple-value-call :__call ,fun ,@args)
+            (runtime-error ,filepos
+                           "attempt to call a ~A value"
+                           ,fun))))))
 
 (defmacro with-runtime (() &body body)
   `(let ((,+lua-env-name+ (make-init-env)))
