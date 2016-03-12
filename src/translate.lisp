@@ -341,7 +341,10 @@
       (when rest-p
         (push "..." names)
         (push rest-var symbols))
-      `((&optional ,@(reverse symbols) &rest ,rest-var)
+      `((&optional ,@(mapcar #'(lambda (sym)
+                                 `(,sym cl-lua.runtime:+lua-nil+))
+                             (reverse symbols))
+                   &rest ,rest-var)
         (declare (ignorable ,@symbols)
                  ,(if rest-p
                       `(ignorable ,rest-var)
