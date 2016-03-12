@@ -2,13 +2,21 @@
 (defpackage :cl-lua
   (:use :cl)
   (:export
-   :do-file))
+   :run-file
+   :run-string))
 (in-package :cl-lua)
 
-(defun do-file (filename)
+(defun run-stream (stream stream-info)
+  (let ((x (cl-lua.translate:translate
+            (cl-lua.parser:parse
+             (cl-lua.lexer:make-lexer stream stream-info)))))
+    (print x)
+    (eval x)))
+
+(defun run-file (filename)
   (with-open-file (in filename)
-    (let ((x (cl-lua.translate:translate
-              (cl-lua.parser:parse
-               (cl-lua.lexer:make-lexer in filename)))))
-      (print x)
-      (eval x))))
+    (run-stream in filename)))
+
+(defun run-string (string)
+  (with-input-from-string (in string)
+    (run-stream in nil)))
