@@ -16,8 +16,8 @@
 (in-package :cl-lua.lua-object)
 
 (defstruct lua-table
-  (hash-table (make-hash-table) :type hash-table :read-only t)
-  (sequence-length 0 :type integer))
+  (hash-table (make-hash-table :test 'equalp) :type hash-table :read-only t)
+  (sequence-length 0 :type fixnum))
 
 (defun lua-parse-number-decimal (string
                                  &key

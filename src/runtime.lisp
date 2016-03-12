@@ -3,7 +3,8 @@
   (:use
    :cl
    :cl-lua.util
-   :cl-lua.lua-object)
+   :cl-lua.lua-object
+   :cl-lua.error)
   (:import-from
    :alexandria
    :with-gensyms)
@@ -49,6 +50,12 @@
 (defvar +lua-rest-symbol+ (make-symbol "..."))
 (defvar +lua-env-name+ (make-symbol "ENV"))
 
+(defun runtime-error (filepos &optional string &rest args)
+  (error 'runtime-error
+         :filepos filepos
+         :object (apply #'format nil string args)
+         :call-stack nil))
+
 (defun lua-false-p (x)
   (or (eq x +lua-nil+)
       (eq x +lua-false+)))
@@ -92,6 +99,17 @@
     (integer
      x)))
 
+(defun to-integer-p (x)
+  (typecase x
+    (lua-string
+     (to-integer-p (lua-string-to-number x)))
+    (float
+     (multiple-value-bind (a b) (floor x)
+       (declare (ignore a))
+       (zerop b)))
+    (integer
+     t)))
+
 (defun to-string (x)
   (typecase x
     (lua-string
@@ -102,8 +120,9 @@
 (defvar *metatable-table* (make-hash-table))
 
 (defun get-metamethod (x name)
-  (let ((table (gethash *metatable-table* x)))
-    (gethash name table)))
+  (let ((table (gethash x *metatable-table*)))
+    (when table
+      (gethash name table))))
 
 (defmacro call-metamethod-between (name &rest args)
   (with-gensyms (gresult)
@@ -123,74 +142,143 @@
        (if (functionp ,gresult)
            (,funcall ,gresult ,@args)))))
 
-(defmacro op1 (filepos cast-function-name x op metamethod-name)
-  `(let ((,x (,cast-function-name ,x)))
-     (cond (x (,op ,x))
-           ((call-metamethod-between ,metamethod-name ,x))
-           (t (error 'runtime-error :filepos ,filepos)))))
+(defun lua-type-of (x)
+  (cond ((typep x 'lua-string) "string")
+        ((typep x 'integer)    "integer")
+        ((typep x 'number)     "number")
+        ((typep x 'lua-table)  "table")
+        ((typep x 'function)   (prin1-to-string x))
+        ((eq x +lua-nil+)      "nil")
+        ((eq x +lua-true+)     "true")
+        ((eq x +lua-false+)    "false")
+        (t
+         (warn "unknown object: ~A" x)
+         (prin1-to-string x))))
 
-(defmacro op2 (filepos cast-function-name x y op metamethod-name)
-  `(let ((,x (,cast-function-name ,x))
-         (,y (,cast-function-name ,y)))
-     (cond ((and ,x ,y) (,op ,x ,y))
-           ((call-metamethod-between ,metamethod-name ,x ,y))
-           (t (error 'runtime-error :filepos ,filepos)))))
+(defmacro arith (filepos x y op metamethod-name)
+  (check-type x symbol)
+  (check-type y symbol)
+  (with-gensyms (gx gy)
+    `(let ((,gx (to-number ,x))
+           (,gy (to-number ,y)))
+       (cond ((and ,gx ,gy) (,op ,gx ,gy))
+             ((call-metamethod-between ,metamethod-name ,x ,y))
+             (t
+              (runtime-error ,filepos
+                             "attempt to perform arithmetic on a ~A value"
+                             (lua-type-of (if (null ,gx) ,x ,y))))))))
+
+(defmacro arith-unary (filepos x op metamethod-name)
+  (check-type x symbol)
+  (with-gensyms (gx)
+    `(let ((,gx (to-number ,x)))
+       (cond ((and ,gx) (,op ,gx))
+             ((call-metamethod-between ,metamethod-name ,x))
+             (t
+              (runtime-error ,filepos
+                             "attempt to perform arithmetic on a ~A value"
+                             (lua-type-of ,x)))))))
+
+(defmacro arith-bit (filepos x y op metamethod-name)
+  (check-type x symbol)
+  (check-type y symbol)
+  (with-gensyms (gx gy)
+    `(let ((,gx (to-integer ,x))
+           (,gy (to-integer ,y)))
+       (cond ((and ,gx ,gy) (,op ,gx ,gy))
+             ((call-metamethod-between ,metamethod-name ,x ,y))
+             ((or (not (to-integer-p ,x)) (not (to-integer-p ,y)))
+              (runtime-error ,filepos
+                             "number has no integer representation"))
+             (t
+              (runtime-error
+               ,filepos
+               "attempt to perform between operation on a ~A value"
+               (lua-type-of (if (null ,gx) ,x ,y))))))))
+
+(defmacro arith-bit-unary (filepos x op metamethod-name)
+  (check-type x symbol)
+  (with-gensyms (gx)
+    `(let ((,gx (to-integer ,x)))
+       (cond (,gx (,op ,gx))
+             ((call-metamethod-between ,metamethod-name ,x))
+             ((not (to-integer-p ,x))
+              (runtime-error ,filepos
+                             "number has no integer representation"))
+             (t
+              (runtime-error
+               ,filepos
+               "attempt to perform between operation on a ~A value"
+               (lua-type-of ,x)))))))
 
 (defun lua-add (filepos x y)
-  (op2 filepos to-number x y + :__add))
+  (arith filepos x y + :__add))
 
 (defun lua-sub (filepos x y)
-  (op2 filepos to-number x y - :__sub))
+  (arith filepos x y - :__sub))
 
 (defun lua-mul (filepos x y)
-  (op2 filepos to-number x y * :__mul))
+  (arith filepos x y * :__mul))
 
 (defun lua-div (filepos x y)
-  (op2 filepos to-number x y (lambda (a b) (float (/ a b))) :__div))
+  (arith filepos x y (lambda (a b) (float (/ a b))) :__div))
 
 (defun lua-mod (filepos x y)
-  (op2 filepos to-number x y mod :__mod))
+  (arith filepos x y mod :__mod))
 
 (defun lua-pow (filepos x y)
-  (op2 filepos to-number x y expt :__pow))
+  (arith filepos x y expt :__pow))
 
 (defun lua-unm (filepos x)
-  (op1 filepos to-number x - :__unm))
+  (arith-unary filepos x - :__unm))
 
 (defun lua-idiv (filepos x y)
-  (op2 filepos to-number x y (lambda (a b) (values (floor a b))) :__idiv))
+  (arith filepos x y (lambda (a b) (values (floor a b))) :__idiv))
 
 (defun lua-band (filepos x y)
-  (op2 filepos to-integer x y logand :__band))
+  (arith-bit filepos x y logand :__band))
 
 (defun lua-bor (filepos x y)
-  (op2 filepos to-integer x y logior :__bor))
+  (arith-bit filepos x y logior :__bor))
 
 (defun lua-bxor (filepos x y)
-  (op2 filepos to-integer x y logxor :__bxor))
+  (arith-bit filepos x y logxor :__bxor))
 
 (defun lua-bnot (filepos x)
-  (op1 filepos to-integer x lognot :__bnot))
+  (arith-bit-unary filepos x lognot :__bnot))
 
 (defun lua-shl (filepos x y)
-  (op2 filepos to-integer x y (lambda (a b) (ash a (- b))) :__shl))
+  (arith-bit filepos x y (lambda (a b) (ash a (- b))) :__shl))
 
 (defun lua-shr (filepos x y)
-  (op2 filepos to-integer x y (lambda (a b) (ash a b)) :__shr))
+  (arith-bit filepos x y (lambda (a b) (ash a b)) :__shr))
 
 (defun lua-concat (filepos x y)
-  (op2 filepos to-string x y (lambda (a b) (concatenate 'lua-string a b))
-       :__concat))
+  (let ((x1 (to-string x))
+        (y1 (to-string y)))
+    (cond ((and x1 y1) (concatenate 'lua-string x1 y1))
+          ((call-metamethod-between :__concat x y))
+          (t (runtime-error filepos
+                            "attempt to concatenate a ~A value"
+                            (if (null x1)
+                                (lua-type-of x)
+                                (lua-type-of y)))))))
 
 (defun lua-len (filepos x)
   (typecase x
     (lua-string
      (length x))
+    (lua-table
+     (or (call-metamethod-between :__len x)
+         (lua-table-sequence-length x)))
     (otherwise
      (or (call-metamethod-between :__len x)
-         (error 'runtime-error :filepos filepos)))))
+         (runtime-error filepos
+                        "attempt to get length of a ~A value"
+                        x)))))
 
 (defun lua-eq (filepos x y)
+  (declare (ignore filepos))
   (tagbody
      (return-from lua-eq
        (typecase x
@@ -221,8 +309,9 @@
                  (go :fail)))))))
    :fail
      (return-from lua-eq
-       (or (lua-bool (call-metamethod-between :__eq x y))
-           (error 'runtime-error :filepos filepos)))))
+       (lua-bool
+        (or (call-metamethod-between :__eq x y)
+            +lua-false+)))))
 
 (defun lua-ne (filepos x y)
   (lua-not filepos (lua-eq filepos x y)))
@@ -249,22 +338,33 @@
         (otherwise
          ,@fail-body)))))
 
+(defun cmp-error (filepos x y)
+  (runtime-error filepos
+                 "attempt to compare ~A with ~A"
+                 (lua-type-of x)
+                 (lua-type-of y)))
+
 (defun lua-lt (filepos x y)
   (cmp (x y < >)
     (or (call-metamethod-between :__lt x y)
-        (error 'runtime-error :filepos filepos))))
+        (cmp-error filepos x y))))
 
 (defun lua-le (filepos x y)
   (cmp (x y <= >)
     (or (call-metamethod-between :__le x y)
         (lua-not filepos (call-metamethod-between :__lt y x))
-        (error 'runtime-error :filepos filepos))))
+        (cmp-error filepos x y))))
 
 (defun lua-gt (filepos x y)
   (lua-lt filepos y x))
 
 (defun lua-ge (filepos x y)
   (lua-le filepos y x))
+
+(defun index-error (filepos table)
+  (runtime-error filepos
+                 "attempt to index a ~A value"
+                 (lua-type-of table)))
 
 (defun lua-index (filepos table key)
   (labels ((metamethod (table key)
@@ -281,7 +381,7 @@
            +lua-nil+))
       (otherwise
        (or (metamethod table key)
-           (error 'runtime-error :filepos filepos))))))
+           (index-error filepos table))))))
 
 (defun (setf lua-index) (value filepos table key)
   (labels ((metamethod (table key value)
@@ -299,7 +399,7 @@
              (t (setf (gethash key (lua-table-hash-table table)) value))))
       (otherwise
        (or (metamethod table key value)
-           (error 'runtime-error :filepos filepos))))))
+           (index-error filepos table))))))
 
 (defun lua-call (filepos fun &rest args)
   (typecase fun
@@ -307,4 +407,6 @@
      (funcall fun args))
     (otherwise
      (or (call-metamethod apply :__call fun args)
-         (error 'runtime-error :filepos filepos)))))
+         (runtime-error filepos
+                        "attempt to call a ~A value"
+                        fun)))))

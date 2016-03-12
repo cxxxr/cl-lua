@@ -15,7 +15,8 @@
    :syntax-error
    :break-error
    :variadic-error
-   :goto-error))
+   :goto-error
+   :runtime-error))
 (in-package :cl-lua.error)
 
 (defgeneric report (condition stream text))
@@ -139,4 +140,18 @@
              "unexpected variadic"))))
 
 (define-condition runtime-error (lua-error)
-  ())
+  ((object
+    :initarg :object
+    :reader runtime-error-object)
+   (call-stack
+    :initarg :call-stack
+    :reader runtime-error-call-stack))
+  (:report
+   (lambda (condition stream)
+     (report condition
+             stream
+             (lua-object-to-string
+              (runtime-error-object condition)))
+     (format stream
+             "~&stack backtrace:~%~{~A~%~}"
+             (runtime-error-call-stack condition)))))
