@@ -14,6 +14,7 @@
    :+lua-true+
    :+lua-rest-symbol+
    :+lua-env-name+
+   :make-init-env
    :lua-false-p
    :lua-not
    :lua-and
@@ -49,6 +50,10 @@
 (defvar +lua-true+ (make-symbol "TRUE"))
 (defvar +lua-rest-symbol+ (make-symbol "..."))
 (defvar +lua-env-name+ (make-symbol "ENV"))
+
+(defun make-init-env ()
+  (let ((table (make-lua-table)))
+    table))
 
 (defun runtime-error (filepos &optional string &rest args)
   (error 'runtime-error
@@ -270,7 +275,7 @@
      (length x))
     (lua-table
      (or (call-metamethod-between :__len x)
-         (lua-table-sequence-length x)))
+         (lua-table-len x)))
     (otherwise
      (or (call-metamethod-between :__len x)
          (runtime-error filepos
@@ -376,7 +381,7 @@
                   (lua-index filepos x key))))))
     (typecase table
       (lua-table
-       (or (gethash key (lua-table-hash-table table))
+       (or (lua-table-get table key)
            (metamethod table key)
            +lua-nil+))
       (otherwise
@@ -393,10 +398,9 @@
                   (setf (lua-index filepos x key) value))))))
     (typecase table
       (lua-table
-       (cond ((gethash key (lua-table-hash-table table))
-              (setf (gethash key (lua-table-hash-table table)) value))
-             ((metamethod table key value))
-             (t (setf (gethash key (lua-table-hash-table table)) value))))
+       (or (lua-table-put-if-exists table key value)
+           (metamethod table key value)
+           (lua-table-put table key value)))
       (otherwise
        (or (metamethod table key value)
            (index-error filepos table))))))

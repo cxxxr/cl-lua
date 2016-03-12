@@ -2,11 +2,13 @@
 (defpackage :cl-lua.lua-object
   (:use :cl :cl-lua.util)
   (:export
+   :make-lua-table
    :lua-table
    :lua-table-p
-   :lua-table-hash-table
-   :lua-table-sequence-length
-   :make-lua-table
+   :lua-table-get
+   :lua-table-put
+   :lua-table-put-if-exists
+   :lua-table-len
    :lua-parse-number
    :lua-string
    :make-lua-string
@@ -15,9 +17,45 @@
    :lua-string-to-number))
 (in-package :cl-lua.lua-object)
 
-(defstruct lua-table
+(defstruct (lua-table (:constructor make-lua-table-internal))
   (hash-table (make-hash-table :test 'equalp) :type hash-table :read-only t)
   (sequence-length 0 :type fixnum))
+
+(defun make-lua-table ()
+  (make-lua-table-internal))
+
+(defun lua-table-get (table key)
+  (declare (lua-table table))
+  (gethash key (lua-table-hash-table table)))
+
+(defun lua-table-put (table key value)
+  (declare (lua-table table))
+  (let ((index (if (integerp key)
+                   (when (<= 0 key) key)
+                   (and (numberp key)
+                        (<= 0 key)
+                        (multiple-value-bind (a b)
+                            (floor key)
+                          (when (zerop b) a)))))
+        (ht (lua-table-hash-table table)))
+    (when (and index
+               (or (zerop index)
+                   (gethash (1- index) ht)))
+      (do ((i index (1+ i)))
+          ((null (gethash i ht)))
+        (incf (lua-table-sequence-length table)))))
+  (setf (gethash key (lua-table-hash-table table))
+        value))
+
+(defun lua-table-put-if-exists (table key value)
+  (cond ((gethash key (lua-table-hash-table table))
+         (lua-table-put table key value)
+         value)
+        (t nil)))
+
+(defun lua-table-len (table)
+  (declare (lua-table table))
+  (lua-table-sequence-length table))
 
 (defun lua-parse-number-decimal (string
                                  &key

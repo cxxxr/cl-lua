@@ -227,29 +227,16 @@
   value)
 
 (define-translate-single (:tableconstructor field-sequence field-pairs)
-  (with-gensyms (gtable-var glength gend-tag)
-    (let ((seqlen (length field-sequence)))
-      `(let ((,gtable-var (make-hash-table :test #'equalp))
-             (,glength ,seqlen))
-         ,@(loop :for (k v) :in field-pairs
-                 :for kcode := (translate-single k)
-                 :for vcode := (translate-single v)
-                 :collect `(setf (gethash ,kcode ,gtable-var) ,vcode))
-         ,@(loop :for elt :in field-sequence
-                 :for n :from 1
-                 :collect `(setf (gethash ,n ,gtable-var)
-                                 ,(translate-single elt)))
-         ,@(unless (null field-pairs)
-             `((tagbody
-                  ,@(loop :for n
-                          :from (1+ seqlen)
-                            :to (+ seqlen (length field-pairs))
-                          :collect `(if (gethash ,n ,gtable-var)
-                                        (incf ,glength)
-                                        (go ,gend-tag)))
-                  ,gend-tag)))
-         (make-lua-table :hash-table ,gtable-var
-                         :sequence-length ,glength)))))
+  (with-gensyms (gtable)
+    `(let ((,gtable (make-lua-table)))
+       ,@(loop :for (k v) :in field-pairs
+               :for kcode := (translate-single k)
+               :for vcode := (translate-single v)
+               :collect `(lua-table-put ,gtable ,kcode ,vcode))
+       ,@(loop :for elt :in field-sequence
+               :for n :from 1
+               :collect `(lua-table-put ,gtable ,n ,(translate-single elt)))
+       ,gtable)))
 
 (define-translate-single (:rest)
   (if (env-find *env* cl-lua.runtime:+lua-rest-symbol+)
@@ -380,7 +367,7 @@
   (let ((*block-name* nil)
         (*env* (make-env))
         (*label-env* (make-env)))
-    `(let ((,cl-lua.runtime:+lua-env-name+ (make-lua-table)))
+    `(let ((,cl-lua.runtime:+lua-env-name+ (cl-lua.runtime:make-init-env)))
        (declare (ignorable ,cl-lua.runtime:+lua-env-name+))
        (block ,*block-name*
          ,(translate-single ast)))))
