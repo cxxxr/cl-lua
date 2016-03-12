@@ -410,7 +410,7 @@
 (defun lua-call (filepos fun &rest args)
   (typecase fun
     (function
-     (funcall fun args))
+     (apply fun args))
     (otherwise
      (or (call-metamethod apply :__call fun args)
          (runtime-error filepos
