@@ -5,6 +5,7 @@
    :make-lua-table
    :lua-table
    :lua-table-p
+   :lua-table-metatable
    :lua-table-get
    :lua-table-put
    :lua-table-put-if-exists
@@ -19,7 +20,8 @@
 
 (defstruct (lua-table (:constructor make-lua-table-internal))
   (hash-table (make-hash-table :test 'equalp) :type hash-table :read-only t)
-  (sequence-length 0 :type fixnum))
+  (sequence-length 0 :type fixnum)
+  (metatable nil :type (or null hash-table)))
 
 (defun make-lua-table ()
   (make-lua-table-internal))

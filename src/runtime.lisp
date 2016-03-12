@@ -125,7 +125,9 @@
 (defvar *metatable-table* (make-hash-table))
 
 (defun get-metamethod (x name)
-  (let ((table (gethash x *metatable-table*)))
+  (let ((table (if (lua-table-p x)
+                   (lua-table-metatable x)
+                   (gethash x *metatable-table*))))
     (when table
       (gethash name table))))
 
