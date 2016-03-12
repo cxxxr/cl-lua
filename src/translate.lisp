@@ -24,19 +24,30 @@
 
 (defun string-to-runtime-symbol (string)
   (check-type string string)
-  (intern string :cl-lua.runtime))
+  (make-symbol string))
 
 (defun make-env ()
   nil)
 
-(defun extend-env-vars (vars env)
-  (append vars env))
+(defun extend-env-vars (names symbols env)
+  (assert (= (length names) (length symbols)))
+  (labels ((f (names symbols)
+             (cond ((or (null names) (null symbols))
+                    (assert (and (null names) (null symbols)))
+                    env)
+                   (t
+                    (extend-env-var (car names)
+                                    (car symbols)
+                                    (f (cdr names) (cdr symbols)))))))
+    (f names symbols)))
 
-(defun extend-env-var (var env)
-  (cons var env))
+(defun extend-env-var (name symbol env)
+  (check-type name string)
+  (check-type symbol symbol)
+  (cons (cons name symbol) env))
 
-(defun env-find (env var)
-  (find var env :test #'equal))
+(defun env-find (env name)
+  (cdr (assoc name env :test #'equal)))
 
 (defun translate-dispatch (ast rest-stats)
   (assert (gethash (ast-name ast) *translators*))
@@ -80,16 +91,19 @@
                          ,grest-stats))))
 
 (define-translate (:block stats) (rest-stats)
-  (let ((label-list
+  (let ((label-names
           (loop :for stat :in stats
                 :when (eq :label (ast-name stat))
                   :collect (car (ast-args stat)))))
-    (let ((form (if (null label-list)
+    (let ((form (if (null label-names)
                     `(progn
                        ,@(translate-stats stats))
                     `(tagbody
                         ,@(let ((*label-env*
-                                  (extend-env-vars label-list *label-env*)))
+                                  (extend-env-vars label-names
+                                                   (mapcar #'string-to-runtime-symbol
+                                                           label-names)
+                                                   *label-env*)))
                             (translate-stats stats))))))
       (translate-concat form
                         rest-stats))))
@@ -109,14 +123,15 @@
               ,(translate-single (car (last explist))))))))
 
 (define-translate-single (:label name)
-  (string-to-runtime-symbol name))
+  (env-find *label-env* name))
 
 (define-translate-single (:goto name)
-  (if (env-find *label-env* name)
-      `(go ,(string-to-runtime-symbol name))
-      (error 'goto-error
-             :name name
-             :filepos (ast-filepos $ast))))
+  (let ((tag (env-find *label-env* name)))
+    (if tag
+        `(go ,tag)
+        (error 'goto-error
+               :name name
+               :filepos (ast-filepos $ast)))))
 
 (define-translate-single (:break)
   (if (boundp '*loop-end-tag*)
@@ -157,7 +172,10 @@
           ,gstart-tag
           (when (> ,gi ,glimit) (go ,gend-tag))
           ,(let ((*loop-end-tag* gend-tag)
-                 (*env* (extend-env-var name *env*)))
+                 (*env* (extend-env-var
+                         name
+                         (string-to-runtime-symbol name)
+                         *env*)))
              (translate-single body))
           (incf ,gi)
           (go ,gstart-tag)
@@ -181,16 +199,22 @@
                 (go ,gend-tag))
               (setf ,gvar ,var1)
               ,(let ((*loop-end-tag* gend-tag)
-                     (*env* (extend-env-vars namelist *env*)))
+                     (*env* (extend-env-vars namelist
+                                             (mapcar #'string-to-runtime-symbol
+                                                     namelist)
+                                             *env*)))
                  (translate-single body)))
             (go ,gstart-tag)
             ,gend-tag)))))
 
 (define-translate (:local namelist explist) (rest-stats)
-  `((multiple-value-bind ,(mapcar #'string-to-runtime-symbol namelist)
-        (values ,@(mapcar #'translate-single explist))
-      ,@(let ((*env* (extend-env-vars namelist *env*)))
-          (translate-stats rest-stats)))))
+  (let ((symbols (mapcar #'string-to-runtime-symbol namelist)))
+    `((multiple-value-bind ,symbols
+          (values ,@(mapcar #'translate-single explist))
+        ,@(let ((*env* (extend-env-vars namelist
+                                        symbols
+                                        *env*)))
+            (translate-stats rest-stats))))))
 
 (define-translate-single (:assign varlist explist)
   (let ((tmp-vars (loop :for v :in varlist :collect (gensym))))
@@ -201,8 +225,7 @@
                :collect `(setf ,(translate-single var1) ,var2)))))
 
 (define-translate-single (:var name)
-  (if (env-find *env* name)
-      (string-to-runtime-symbol name)
+  (or (env-find *env* name)
       `(cl-lua.runtime:lua-index
         ,(ast-filepos $ast)
         ,cl-lua.runtime:+lua-env-name+
@@ -302,34 +325,46 @@
       ("or"
        `(cl-lua.runtime:lua-or ,(ast-filepos $ast) ,left-form ,right-form)))))
 
-(defun gen-function (parameters body)
-  (let ((rest-p))
-    (let ((args (loop :for p :in parameters
-                      :if (eq p :rest)
-                        :do (setq rest-p t)
-                      :else
-                        :collect (string-to-runtime-symbol p))))
-      (let ((rest-var (if rest-p
-                          cl-lua.runtime:+lua-rest-symbol+
-                          (gensym))))
-        `((&optional ,@args &rest ,rest-var)
-          (declare (ignorable ,@args)
-                   ,@(unless rest-p `((ignore ,rest-var))))
-          ,(let ((*label-env* (make-env))
-                 (*env* (extend-env-vars (if rest-p
-                                             (cons rest-var args)
-                                             args)
-                                    *env*)))
-             (translate-single body)))))))
+(defun gen-function (block-name parameters body)
+  (let ((rest-p)
+        (names)
+        (symbols))
+    (dolist (p parameters)
+      (cond ((eq p :rest)
+             (setq rest-p t))
+            (t
+             (push p names)
+             (push (string-to-runtime-symbol p) symbols))))
+    (let* ((rest-var (if rest-p
+                         cl-lua.runtime:+lua-rest-symbol+
+                         (gensym))))
+      (when rest-p
+        (push "..." names)
+        (push rest-var symbols))
+      `((&optional ,@(reverse symbols) &rest ,rest-var)
+        (declare (ignorable ,@symbols)
+                 ,(if rest-p
+                      `(ignorable ,rest-var)
+                      `(ignore ,rest-var)))
+        ,(let ((*label-env* (make-env))
+               (*env* (extend-env-vars names symbols *env*))
+               (*block-name* block-name))
+           (translate-single body))))))
 
 (define-translate (:local-function name parameters body) (rest-stats)
   (let* ((fname (string-to-runtime-symbol name))
-         (*env* (extend-env-var fname *env*)))
-    `((labels ((,fname ,@(gen-function parameters body)))
+         (*env* (extend-env-var name fname *env*)))
+    `((labels ((,fname ,@(gen-function fname parameters body)))
         ,@(translate-stats rest-stats)))))
 
 (define-translate-single (:function parameters body)
-  `(lambda ,@(gen-function parameters body)))
+  (let ((block-name (gensym)))
+    (destructuring-bind (parameters decls &rest body)
+        (gen-function block-name parameters body)
+      `(lambda ,parameters
+         ,decls
+         (block ,block-name
+           ,@body)))))
 
 (define-translate-single (:index key value)
   `(cl-lua.runtime:lua-index
@@ -367,7 +402,6 @@
   (let ((*block-name* nil)
         (*env* (make-env))
         (*label-env* (make-env)))
-    `(let ((,cl-lua.runtime:+lua-env-name+ (cl-lua.runtime:make-init-env)))
-       (declare (ignorable ,cl-lua.runtime:+lua-env-name+))
+    `(cl-lua.runtime:with-runtime ()
        (block ,*block-name*
          ,(translate-single ast)))))
