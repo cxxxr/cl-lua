@@ -42,7 +42,8 @@
    :lua-gt
    :lua-ge
    :lua-index
-   :lua-call))
+   :lua-call
+   :with-runtime))
 (in-package :cl-lua.runtime)
 
 (defvar +lua-nil+ (make-symbol "NIL"))
@@ -416,3 +417,8 @@
          (runtime-error filepos
                         "attempt to call a ~A value"
                         fun)))))
+
+(defmacro with-runtime (() &body body)
+  `(let ((,+lua-env-name+ (make-init-env)))
+     (declare (ignorable ,+lua-env-name+))
+     ,@body))
