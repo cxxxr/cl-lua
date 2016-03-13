@@ -168,14 +168,16 @@
   (check-type x symbol)
   (check-type y symbol)
   (with-gensyms (gx gy)
-    `(let ((,gx (to-number ,x))
-           (,gy (to-number ,y)))
-       (cond ((and ,gx ,gy) (,op ,gx ,gy))
-             ((call-metamethod-between ,metamethod-name ,x ,y))
-             (t
-              (runtime-error ,filepos
-                             "attempt to perform arithmetic on a ~A value"
-                             (lua-type-of (if (null ,gx) ,x ,y))))))))
+    `(if (and (numberp ,x) (numberp ,y))
+         (,op ,x ,y)
+         (let ((,gx (to-number ,x))
+               (,gy (to-number ,y)))
+           (cond ((and ,gx ,gy) (,op ,gx ,gy))
+                 ((call-metamethod-between ,metamethod-name ,x ,y))
+                 (t
+                  (runtime-error ,filepos
+                                 "attempt to perform arithmetic on a ~A value"
+                                 (lua-type-of (if (null ,gx) ,x ,y)))))))))
 
 (defmacro arith-unary (filepos x op metamethod-name)
   (check-type x symbol)
