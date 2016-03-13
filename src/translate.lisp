@@ -224,11 +224,14 @@
                :collect `(setf ,(translate-single var1) ,var2)))))
 
 (define-translate-single (:var name)
-  (or (env-find *env* name)
-      `(cl-lua.runtime:lua-index
-        ,(ast-filepos $ast)
-        ,cl-lua.runtime:+lua-env-name+
-        ,(string-to-lua-string name))))
+  (cond ((string= name "_ENV")
+         cl-lua.runtime:+lua-env-name+)
+        ((env-find *env* name))
+        (t
+         `(cl-lua.runtime:lua-index
+           ,(ast-filepos $ast)
+           ,cl-lua.runtime:+lua-env-name+
+           ,(string-to-lua-string name)))))
 
 (define-translate-single (:paren exp)
   `(values ,(translate exp)))

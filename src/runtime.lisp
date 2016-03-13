@@ -51,7 +51,7 @@
 (defvar +lua-false+ (make-symbol "FALSE"))
 (defvar +lua-true+ (make-symbol "TRUE"))
 (defvar +lua-rest-symbol+ (make-symbol "..."))
-(defvar +lua-env-name+ (make-symbol "ENV"))
+(defvar +lua-env-name+ (make-symbol "_ENV"))
 
 (defun make-init-env ()
   (let ((table (make-lua-table)))
