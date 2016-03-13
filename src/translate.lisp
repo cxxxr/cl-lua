@@ -22,7 +22,7 @@
 
 (defvar *translators* (make-hash-table))
 
-(defun string-to-runtime-symbol (string)
+(defun string-to-variable (string)
   (check-type string string)
   (make-symbol string))
 
@@ -100,7 +100,7 @@
                     `(tagbody
                         ,@(let ((*label-env*
                                   (extend-env-vars label-names
-                                                   (mapcar #'string-to-runtime-symbol
+                                                   (mapcar #'string-to-variable
                                                            label-names)
                                                    *label-env*)))
                             (translate-stats stats))))))
@@ -173,7 +173,7 @@
           ,(let ((*loop-end-tag* gend-tag)
                  (*env* (extend-env-var
                          name
-                         (string-to-runtime-symbol name)
+                         (string-to-variable name)
                          *env*)))
              (translate-single body))
           (incf ,gi)
@@ -181,7 +181,7 @@
           ,gend-tag))))
 
 (define-translate-single (:generic-for namelist explist body)
-  (let* ((vars (mapcar #'string-to-runtime-symbol namelist))
+  (let* ((vars (mapcar #'string-to-variable namelist))
          (var1 (car vars)))
     (with-gensyms (gf gs gvar gstart-tag gend-tag)
       `(multiple-value-bind (,gf ,gs ,gvar)
@@ -199,7 +199,7 @@
               (setf ,gvar ,var1)
               ,(let ((*loop-end-tag* gend-tag)
                      (*env* (extend-env-vars namelist
-                                             (mapcar #'string-to-runtime-symbol
+                                             (mapcar #'string-to-variable
                                                      namelist)
                                              *env*)))
                  (translate-single body)))
@@ -207,7 +207,7 @@
             ,gend-tag)))))
 
 (define-translate (:local namelist explist) (rest-stats)
-  (let ((symbols (mapcar #'string-to-runtime-symbol namelist)))
+  (let ((symbols (mapcar #'string-to-variable namelist)))
     `((multiple-value-bind ,symbols
           (values ,@(mapcar #'translate-single explist))
         ,@(let ((*env* (extend-env-vars namelist
@@ -333,7 +333,7 @@
              (setq rest-p t))
             (t
              (push p names)
-             (push (string-to-runtime-symbol p) symbols))))
+             (push (string-to-variable p) symbols))))
     (let* ((rest-var (if rest-p
                          cl-lua.runtime:+lua-rest-symbol+
                          (gensym))))
@@ -354,7 +354,7 @@
            (translate-single body))))))
 
 (define-translate (:local-function name parameters body) (rest-stats)
-  (let* ((fname (string-to-runtime-symbol name))
+  (let* ((fname (string-to-variable name))
          (*env* (extend-env-var name `#',fname *env*)))
     `((labels ((,fname ,@(gen-function fname parameters body)))
         ,@(translate-stats rest-stats)))))
