@@ -43,7 +43,6 @@
 
 (defun extend-env-var (name symbol env)
   (check-type name string)
-  (check-type symbol symbol)
   (cons (cons name symbol) env))
 
 (defun env-find (env name)
@@ -356,7 +355,7 @@
 
 (define-translate (:local-function name parameters body) (rest-stats)
   (let* ((fname (string-to-runtime-symbol name))
-         (*env* (extend-env-var name fname *env*)))
+         (*env* (extend-env-var name `#',fname *env*)))
     `((labels ((,fname ,@(gen-function fname parameters body)))
         ,@(translate-stats rest-stats)))))
 
