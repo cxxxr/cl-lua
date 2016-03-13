@@ -415,7 +415,10 @@
   (once-only (fun)
     `(typecase ,fun
        (function
-        (multiple-value-call ,fun ,@args))
+        ,(if (or (null args)
+                 (atom (car (last args))))
+             `(funcall ,fun ,@args)
+             `(multiple-value-call ,fun ,@args)))
        (otherwise
         (or (call-metamethod multiple-value-call :__call ,fun ,@args)
             (runtime-error ,filepos
