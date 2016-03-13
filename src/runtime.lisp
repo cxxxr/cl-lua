@@ -93,17 +93,17 @@
       y
       x))
 
-(defun to-number (x)
+(defun cast-number (x)
   (typecase x
     (lua-string
      (lua-string-to-number x))
     (number
      x)))
 
-(defun to-integer (x)
+(defun cast-integer (x)
   (typecase x
     (lua-string
-     (to-integer (lua-string-to-number x)))
+     (cast-integer (lua-string-to-number x)))
     (float
      (multiple-value-bind (a b) (floor x)
        (when (zerop b)
@@ -111,10 +111,10 @@
     (integer
      x)))
 
-(defun to-integer-p (x)
+(defun cast-integer-p (x)
   (typecase x
     (lua-string
-     (to-integer-p (lua-string-to-number x)))
+     (cast-integer-p (lua-string-to-number x)))
     (float
      (multiple-value-bind (a b) (floor x)
        (declare (ignore a))
@@ -122,7 +122,7 @@
     (integer
      t)))
 
-(defun to-string (x)
+(defun cast-string (x)
   (typecase x
     (lua-string
      x)
@@ -175,8 +175,8 @@
   (with-gensyms (gx gy)
     `(if (and (numberp ,x) (numberp ,y))
          (,op ,x ,y)
-         (let ((,gx (to-number ,x))
-               (,gy (to-number ,y)))
+         (let ((,gx (cast-number ,x))
+               (,gy (cast-number ,y)))
            (cond ((and ,gx ,gy) (,op ,gx ,gy))
                  ((call-metamethod-between ,metamethod-name ,x ,y))
                  (t
@@ -187,7 +187,7 @@
 (defmacro arith-unary (filepos x op metamethod-name)
   (check-type x symbol)
   (with-gensyms (gx)
-    `(let ((,gx (to-number ,x)))
+    `(let ((,gx (cast-number ,x)))
        (cond ((and ,gx) (,op ,gx))
              ((call-metamethod-between ,metamethod-name ,x))
              (t
@@ -199,11 +199,11 @@
   (check-type x symbol)
   (check-type y symbol)
   (with-gensyms (gx gy)
-    `(let ((,gx (to-integer ,x))
-           (,gy (to-integer ,y)))
+    `(let ((,gx (cast-integer ,x))
+           (,gy (cast-integer ,y)))
        (cond ((and ,gx ,gy) (,op ,gx ,gy))
              ((call-metamethod-between ,metamethod-name ,x ,y))
-             ((or (not (to-integer-p ,x)) (not (to-integer-p ,y)))
+             ((or (not (cast-integer-p ,x)) (not (cast-integer-p ,y)))
               (runtime-error ,filepos
                              "number has no integer representation"))
              (t
@@ -215,10 +215,10 @@
 (defmacro arith-bit-unary (filepos x op metamethod-name)
   (check-type x symbol)
   (with-gensyms (gx)
-    `(let ((,gx (to-integer ,x)))
+    `(let ((,gx (cast-integer ,x)))
        (cond (,gx (,op ,gx))
              ((call-metamethod-between ,metamethod-name ,x))
-             ((not (to-integer-p ,x))
+             ((not (cast-integer-p ,x))
               (runtime-error ,filepos
                              "number has no integer representation"))
              (t
@@ -270,8 +270,8 @@
   (arith-bit filepos x y (lambda (a b) (ash a b)) :__shr))
 
 (defun lua-concat (filepos x y)
-  (let ((x1 (to-string x))
-        (y1 (to-string y)))
+  (let ((x1 (cast-string x))
+        (y1 (cast-string y)))
     (cond ((and x1 y1) (concatenate 'lua-string x1 y1))
           ((call-metamethod-between :__concat x y))
           (t (runtime-error filepos
