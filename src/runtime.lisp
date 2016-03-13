@@ -63,25 +63,30 @@
          :object (apply #'format nil string args)
          :call-stack nil))
 
+(declaim (inline lua-false-p))
 (defun lua-false-p (x)
   (or (eq x +lua-nil+)
       (eq x +lua-false+)))
 
+(declaim (inline lua-bool))
 (defun lua-bool (x)
   (if x +lua-true+ +lua-false+))
 
+(declaim (inline lua-bool))
 (defun lua-not (filepos x)
   (declare (ignore filepos))
   (if (lua-false-p x)
       +lua-true+
       +lua-false+))
 
+(declaim (inline lua-and))
 (defun lua-and (filepos x y)
   (declare (ignore filepos))
   (if (lua-false-p x)
       x
       y))
 
+(declaim (inline lua-or))
 (defun lua-or (filepos x y)
   (declare (ignore filepos))
   (if (lua-false-p x)
