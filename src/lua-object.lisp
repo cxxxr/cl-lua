@@ -19,7 +19,7 @@
 (in-package :cl-lua.lua-object)
 
 (defstruct (lua-table (:constructor make-lua-table-internal))
-  (hash-table (make-hash-table :test 'equalp) :type hash-table :read-only t)
+  (hash-table (make-hash-table :test 'eql) :type hash-table :read-only t)
   (sequence-length 0 :type fixnum)
   (metatable nil :type (or null hash-table)))
 
