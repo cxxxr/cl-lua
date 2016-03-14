@@ -16,6 +16,8 @@
                (:file "src/parser")
                (:file "src/runtime")
                (:file "src/translate")
+               (:file "src/libutil")
+               (:file "src/baselib")
                (:file "src/lua"))
   :depends-on (:cl-ppcre :alexandria :babel)
   :in-order-to ((test-op (test-op cl-lua-test))))

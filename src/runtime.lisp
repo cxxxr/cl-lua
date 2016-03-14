@@ -15,7 +15,9 @@
    :+lua-true+
    :+lua-rest-symbol+
    :+lua-env-name+
+   :set-global-variable
    :make-init-env
+   :get-metamethod
    :lua-false-p
    :lua-not
    :lua-and
@@ -52,6 +54,14 @@
 (defvar +lua-true+ (make-symbol "TRUE"))
 (defvar +lua-rest-symbol+ (make-symbol "..."))
 (defvar +lua-env-name+ (make-symbol "_ENV"))
+
+(defvar *global-lua-table* (make-lua-table))
+
+(defun set-global-variable (name value)
+  (check-type name lua-string)
+  (lua-table-put *global-lua-table*
+                 name
+                 value))
 
 (defun make-init-env ()
   (let ((table (make-lua-table)))
@@ -431,6 +441,6 @@
                            ,fun))))))
 
 (defmacro with-runtime (() &body body)
-  `(let ((,+lua-env-name+ (make-init-env)))
+  `(let ((,+lua-env-name+ *global-lua-table*))
      (declare (ignorable ,+lua-env-name+))
      ,@body))
