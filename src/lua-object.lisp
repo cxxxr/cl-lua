@@ -12,7 +12,7 @@
    :lua-table-len
    :lua-parse-number
    :lua-string
-   :make-lua-string
+   :make-empty-lua-string
    :string-to-lua-string
    :lua-object-to-string
    :lua-string-to-number))
@@ -130,14 +130,16 @@
 (deftype lua-string (&optional n)
   `(simple-array (unsigned-byte 8) (,n)))
 
-(defun make-lua-string (n)
-  (make-array n
-              :element-type '(unsigned-byte 8)
-              :initial-element 0))
+(defvar *lua-string-cache-table* (make-hash-table :test #'equal))
+
+(defun make-empty-lua-string ()
+  (string-to-lua-string ""))
 
 (defun string-to-lua-string (string)
   (check-type string string)
-  (babel:string-to-octets string))
+  (or (gethash string *lua-string-cache-table*)
+      (setf (gethash string *lua-string-cache-table*)
+            (babel:string-to-octets string))))
 
 (defun lua-string-to-string (lua-string)
   (babel:octets-to-string lua-string))

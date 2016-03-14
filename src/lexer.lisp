@@ -296,7 +296,7 @@
       (lexer-scan-regex lexer "^\\[=*\\[")
     (when s
       (let ((start-linum (lexer-linum lexer))
-            (lua-string (make-lua-string 0)))
+            (lua-string (make-empty-lua-string)))
 	(if (= e (length (lexer-line lexer)))
             (next-line lexer)
             (setf (lexer-column lexer) e))
