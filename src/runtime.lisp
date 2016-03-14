@@ -138,7 +138,7 @@
     (when table
       (gethash name table))))
 
-(defmacro call-metamethod-between (name &rest args)
+(defmacro call-metamethod-or (name &rest args)
   (with-gensyms (gresult)
     (labels ((f (args)
                (if (null args)
@@ -150,7 +150,7 @@
                             ,(f (cdr args))))))))
       (f args))))
 
-(defmacro call-metamethod (funcall name &rest args)
+(defmacro call-metamethod-form (funcall name &rest args)
   (with-gensyms (gresult)
     `(let ((,gresult (get-metamethod ,name ,(car args))))
        (if (functionp ,gresult)
@@ -178,7 +178,7 @@
          (let ((,gx (cast-number ,x))
                (,gy (cast-number ,y)))
            (cond ((and ,gx ,gy) (,op ,gx ,gy))
-                 ((call-metamethod-between ,metamethod-name ,x ,y))
+                 ((call-metamethod-or ,metamethod-name ,x ,y))
                  (t
                   (runtime-error ,filepos
                                  "attempt to perform arithmetic on a ~A value"
@@ -189,7 +189,7 @@
   (with-gensyms (gx)
     `(let ((,gx (cast-number ,x)))
        (cond ((and ,gx) (,op ,gx))
-             ((call-metamethod-between ,metamethod-name ,x))
+             ((call-metamethod-or ,metamethod-name ,x))
              (t
               (runtime-error ,filepos
                              "attempt to perform arithmetic on a ~A value"
@@ -202,7 +202,7 @@
     `(let ((,gx (cast-integer ,x))
            (,gy (cast-integer ,y)))
        (cond ((and ,gx ,gy) (,op ,gx ,gy))
-             ((call-metamethod-between ,metamethod-name ,x ,y))
+             ((call-metamethod-or ,metamethod-name ,x ,y))
              ((or (not (cast-integer-p ,x)) (not (cast-integer-p ,y)))
               (runtime-error ,filepos
                              "number has no integer representation"))
@@ -217,7 +217,7 @@
   (with-gensyms (gx)
     `(let ((,gx (cast-integer ,x)))
        (cond (,gx (,op ,gx))
-             ((call-metamethod-between ,metamethod-name ,x))
+             ((call-metamethod-or ,metamethod-name ,x))
              ((not (cast-integer-p ,x))
               (runtime-error ,filepos
                              "number has no integer representation"))
@@ -273,7 +273,7 @@
   (let ((x1 (cast-string x))
         (y1 (cast-string y)))
     (cond ((and x1 y1) (concatenate 'lua-string x1 y1))
-          ((call-metamethod-between :__concat x y))
+          ((call-metamethod-or :__concat x y))
           (t (runtime-error filepos
                             "attempt to concatenate a ~A value"
                             (if (null x1)
@@ -285,10 +285,10 @@
     (lua-string
      (length x))
     (lua-table
-     (or (call-metamethod-between :__len x)
+     (or (call-metamethod-or :__len x)
          (lua-table-len x)))
     (otherwise
-     (or (call-metamethod-between :__len x)
+     (or (call-metamethod-or :__len x)
          (runtime-error filepos
                         "attempt to get length of a ~A value"
                         x)))))
@@ -326,7 +326,7 @@
    :fail
      (return-from lua-eq
        (lua-bool
-        (or (call-metamethod-between :__eq x y)
+        (or (call-metamethod-or :__eq x y)
             +lua-false+)))))
 
 (defun lua-ne (filepos x y)
@@ -362,13 +362,13 @@
 
 (defun lua-lt (filepos x y)
   (cmp (x y < >)
-    (or (call-metamethod-between :__lt x y)
+    (or (call-metamethod-or :__lt x y)
         (cmp-error filepos x y))))
 
 (defun lua-le (filepos x y)
   (cmp (x y <= >)
-    (or (call-metamethod-between :__le x y)
-        (lua-not filepos (call-metamethod-between :__lt y x))
+    (or (call-metamethod-or :__le x y)
+        (lua-not filepos (call-metamethod-or :__lt y x))
         (cmp-error filepos x y))))
 
 (defun lua-gt (filepos x y)
@@ -425,7 +425,7 @@
              `(funcall ,fun ,@args)
              `(multiple-value-call ,fun ,@args)))
        (otherwise
-        (or (call-metamethod multiple-value-call :__call ,fun ,@args)
+        (or (call-metamethod-form multiple-value-call :__call ,fun ,@args)
             (runtime-error ,filepos
                            "attempt to call a ~A value"
                            ,fun))))))
