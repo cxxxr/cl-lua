@@ -191,27 +191,22 @@
                   ,gend-tag)))))))
 
 (define-translate-single (:generic-for namelist explist body)
-  (let* ((vars (mapcar #'string-to-variable namelist))
-         (var1 (car vars)))
-    (with-gensyms (gf gs gvar gstart-tag gend-tag)
+  (with-gensyms (gf gs gvar gstart-tag gend-tag)
+    (let ((varlist (mapcar #'string-to-variable namelist)))
       `(multiple-value-bind (,gf ,gs ,gvar)
-           (values ,@(mapcar #'translate-single explist))
+           ,@(mapcar #'translate-single explist)
          (tagbody
             ,gstart-tag
-            (multiple-value-bind ,vars
-                (cl-lua.runtime:lua-call
-                 ,(ast-filepos $ast) ,gf ,gs ,gvar)
-              (when (cl-lua.runtime:lua-eq
-                     ,(ast-filepos $ast)
-                     ,var1
-                     cl-lua.runtime:+lua-nil+)
+            (multiple-value-bind ,varlist
+                (cl-lua.runtime:lua-call ,(ast-filepos $ast)
+                                         ,gf
+                                         ,gs
+                                         ,gvar)
+              (declare (ignorable ,@(cdr varlist)))
+              (when (cl-lua.runtime:lua-nil-p ,(car varlist))
                 (go ,gend-tag))
-              (setf ,gvar ,var1)
-              ,(let ((*loop-end-tag* gend-tag)
-                     (*env* (extend-env-vars *env*
-                                             namelist
-                                             (mapcar #'string-to-variable
-                                                     namelist))))
+              (setf ,gvar ,(car varlist))
+              ,(let ((*env* (extend-env-vars *env* namelist varlist)))
                  (translate-single body)))
             (go ,gstart-tag)
             ,gend-tag)))))
