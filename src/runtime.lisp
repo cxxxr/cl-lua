@@ -17,6 +17,7 @@
    :+lua-env-name+
    :set-global-variable
    :make-init-env
+   :get-metatable
    :get-metamethod
    :runtime-error
    :runtime-type-error
@@ -163,12 +164,17 @@
 
 (defvar *metatable-table* (make-hash-table))
 
+(defun get-metatable (x)
+  (if (lua-table-p x)
+      (lua-table-metatable x)
+      (gethash x *metatable-table*)))
+
 (defun get-metamethod (x name)
-  (let ((table (if (lua-table-p x)
-                   (lua-table-metatable x)
-                   (gethash x *metatable-table*))))
+  (let ((table (get-metatable x)))
     (when table
-      (gethash name table))))
+      (lua-table-get table
+                     (string-to-lua-string
+                      (string-downcase name))))))
 
 (defmacro call-metamethod-or (name &rest args)
   (with-gensyms (gresult)
