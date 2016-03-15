@@ -48,6 +48,22 @@
             +lua-nil+
             metatable))))
 
+(define-lua-function "ipairs" (table)
+  (unless (lua-table-p table)
+    (runtime-type-error 1 "table" (type_ table)))
+  (values #'(lambda (tb i)
+              (unless (lua-table-p tb)
+                (runtime-type-error 1 "table" (type_ tb)))
+              (unless (numberp i)
+                (runtime-type-error 2 "number" (type_ i)))
+              (incf i)
+              (let ((value (lua-table-get tb i nil)))
+                (if value
+                    (values i value)
+                    +lua-nil+)))
+          table
+          0))
+
 (define-lua-function "print" (&rest args)
   (do ((rest args (cdr rest)))
       ((null rest))
