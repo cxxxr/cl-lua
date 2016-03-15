@@ -87,12 +87,12 @@
                    (string-to-lua-string
                     (apply #'format nil string args))))
 
-(defun runtime-type-error (function-name arg-num expected-type got-type)
+(defun runtime-type-error (arg-num expected-type got-type)
   (runtime-error
    (string-to-lua-string
     (format nil
-            "bad argument #~D to ~A (~A expected, got ~A)"
-            arg-num function-name expected-type got-type))))
+            "bad argument #~D (~A expected, got ~A)"
+            arg-num expected-type got-type))))
 
 (defun lua-nil-p (x)
   (eq x +lua-nil+))

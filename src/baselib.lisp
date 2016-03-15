@@ -32,8 +32,7 @@
                         (number
                          (prin1-to-string filename))
                         (otherwise
-                         (runtime-type-error "dofile"
-                                             1
+                         (runtime-type-error 1
                                              "string"
                                              (type_ filename))))))
         (with-open-file (stream filename)
