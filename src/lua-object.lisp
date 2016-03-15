@@ -27,9 +27,9 @@
 (defun make-lua-table ()
   (make-lua-table-internal))
 
-(defun lua-table-get (table key)
+(defun lua-table-get (table key default)
   (declare (lua-table table))
-  (gethash key (lua-table-hash-table table)))
+  (gethash key (lua-table-hash-table table) default))
 
 (defun lua-table-put (table key value)
   (declare (lua-table table))

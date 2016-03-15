@@ -173,7 +173,7 @@
 (defun get-metamethod (x name)
   (let ((table (get-metatable x)))
     (when table
-      (lua-table-get table name))))
+      (lua-table-get table name nil))))
 
 (defmacro call-metamethod-or (name &rest args)
   (with-gensyms (gresult)
@@ -432,7 +432,7 @@
                   (lua-index filepos x key))))))
     (typecase table
       (lua-table
-       (or (lua-table-get table key)
+       (or (lua-table-get table key nil)
            (metamethod table key)
            +lua-nil+))
       (otherwise
