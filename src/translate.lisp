@@ -29,24 +29,25 @@
 (defun make-env ()
   nil)
 
-(defun extend-env-vars (names symbols env)
+(defun extend-env-vars (env names symbols)
   (assert (= (length names) (length symbols)))
   (labels ((f (names symbols)
              (cond ((or (null names) (null symbols))
                     (assert (and (null names) (null symbols)))
                     env)
                    (t
-                    (extend-env-var (car names)
-                                    (car symbols)
-                                    (f (cdr names) (cdr symbols)))))))
+                    (extend-env-var (f (cdr names) (cdr symbols))
+                                    (car names)
+                                    (car symbols))))))
     (f names symbols)))
 
-(defun extend-env-var (name symbol env)
+(defun extend-env-var (env name symbol &optional functionp)
   (check-type name string)
-  (cons (cons name symbol) env))
+  (cons (list name symbol functionp) env))
 
 (defun env-find (env name)
-  (cdr (assoc name env :test #'equal)))
+  (let ((elt (assoc name env :test #'equal)))
+    (values (cadr elt) (caddr elt))))
 
 (defun translate-dispatch (ast rest-stats)
   (assert (gethash (ast-name ast) *translators*))
@@ -99,10 +100,10 @@
                        ,@(translate-stats stats))
                     `(tagbody
                         ,@(let ((*label-env*
-                                  (extend-env-vars label-names
+                                  (extend-env-vars *label-env*
+                                                   label-names
                                                    (mapcar #'string-to-variable
-                                                           label-names)
-                                                   *label-env*)))
+                                                           label-names))))
                             (translate-stats stats))))))
       (translate-concat form
                         rest-stats))))
@@ -172,9 +173,9 @@
           (when (> ,gi ,glimit) (go ,gend-tag))
           ,(let ((*loop-end-tag* gend-tag)
                  (*env* (extend-env-var
+                         *env*
                          name
-                         (string-to-variable name)
-                         *env*)))
+                         (string-to-variable name))))
              (translate-single body))
           (incf ,gi)
           (go ,gstart-tag)
@@ -198,10 +199,10 @@
                 (go ,gend-tag))
               (setf ,gvar ,var1)
               ,(let ((*loop-end-tag* gend-tag)
-                     (*env* (extend-env-vars namelist
+                     (*env* (extend-env-vars *env*
+                                             namelist
                                              (mapcar #'string-to-variable
-                                                     namelist)
-                                             *env*)))
+                                                     namelist))))
                  (translate-single body)))
             (go ,gstart-tag)
             ,gend-tag)))))
@@ -210,9 +211,9 @@
   (let ((symbols (mapcar #'string-to-variable namelist)))
     `((multiple-value-bind ,symbols
           (values ,@(mapcar #'translate-single explist))
-        ,@(let ((*env* (extend-env-vars namelist
-                                        symbols
-                                        *env*)))
+        ,@(let ((*env* (extend-env-vars *env*
+                                        namelist
+                                        symbols)))
             (translate-stats rest-stats))))))
 
 (define-translate-single (:assign varlist explist)
@@ -224,14 +225,13 @@
                :collect `(setf ,(translate-single var1) ,var2)))))
 
 (define-translate-single (:var name)
-  (cond ((string= name "_ENV")
-         cl-lua.runtime:+lua-env-name+)
-        ((env-find *env* name))
-        (t
-         `(cl-lua.runtime:lua-index
-           ,(ast-filepos $ast)
-           ,cl-lua.runtime:+lua-env-name+
-           ,(string-to-lua-string name)))))
+  (if (string= name "_ENV")
+      cl-lua.runtime:+lua-env-name+
+      (or (env-find *env* name)
+          `(cl-lua.runtime:lua-index
+            ,(ast-filepos $ast)
+            ,cl-lua.runtime:+lua-env-name+
+            ,(string-to-lua-string name)))))
 
 (define-translate-single (:paren exp)
   `(values ,(translate-single exp)))
@@ -352,13 +352,13 @@
                       `(ignorable ,rest-var)
                       `(ignore ,rest-var)))
         ,(let ((*label-env* (make-env))
-               (*env* (extend-env-vars names symbols *env*))
+               (*env* (extend-env-vars *env* names symbols))
                (*block-name* block-name))
            (translate-single body))))))
 
 (define-translate (:local-function name parameters body) (rest-stats)
   (let* ((fname (string-to-variable name))
-         (*env* (extend-env-var name `#',fname *env*)))
+         (*env* (extend-env-var *env* name fname t)))
     `((labels ((,fname ,@(gen-function fname parameters body)))
         ,@(translate-stats rest-stats)))))
 
@@ -377,18 +377,30 @@
     ,(translate-single key)
     ,(translate-single value)))
 
+(defun gen-call-local-function (func-name args)
+  (if (or (null args)
+          (atom (last1 args))
+          (and (eq 'values (car (last1 args)))
+               (length=1 (cdr (last1 args)))))
+      `(,func-name ,@args)
+      `(multiple-value-call #',func-name ,@args)))
+
 (define-translate-single (:call-function fun args)
-  (if (null args)
-      `(cl-lua.runtime:lua-call
-        ,(ast-filepos $ast)
-        ,(translate-single fun))
-      `(cl-lua.runtime:lua-call
-        ,(ast-filepos $ast)
-        ,(translate-single fun)
-        ,@(mapcar #'(lambda (arg)
-                      `(values ,(translate-single arg)))
-                  (butlast args))
-        ,(translate-single (last1 args)))))
+  (let ((args (when args
+                (append (mapcar #'(lambda (arg)
+                                    `(values ,(translate-single arg)))
+                                (butlast args))
+                        (list (translate-single (last1 args)))))))
+    (block outer
+      (when (eq :var (ast-name fun))
+        (multiple-value-bind (func-name functionp)
+            (env-find *env* (car (ast-args fun)))
+          (when functionp
+            (return-from outer (gen-call-local-function func-name args)))))
+      (let ((func-form (translate-single fun)))
+        `(cl-lua.runtime:lua-call ,(ast-filepos $ast)
+                                  ,func-form
+                                  ,@args)))))
 
 (define-translate-single (:call-method prefix name args)
   (with-gensyms (gvalue)
