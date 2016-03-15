@@ -10,7 +10,8 @@
   (let ((x (cl-lua.translate:translate
             (cl-lua.parser:parse
              (cl-lua.lexer:make-lexer stream stream-info)))))
-    (print x)
+    (pprint x)
+    (fresh-line)
     (eval x)))
 
 (defun run-file (filename)

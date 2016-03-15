@@ -21,6 +21,7 @@
    :get-metamethod
    :runtime-error
    :runtime-type-error
+   :runtime-error-form
    :lua-nil-p
    :lua-false-p
    :lua-not

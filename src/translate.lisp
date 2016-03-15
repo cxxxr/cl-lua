@@ -165,21 +165,30 @@
        ,(translate-single then)))
 
 (define-translate-single (:for name init end step body)
-  (with-gensyms (gi glimit gstart-tag gend-tag)
-    `(let ((,gi ,(translate-single init))
-           (,glimit ,(translate-single end)))
-       (tagbody
-          ,gstart-tag
-          (when (> ,gi ,glimit) (go ,gend-tag))
-          ,(let ((*loop-end-tag* gend-tag)
-                 (*env* (extend-env-var
-                         *env*
-                         name
-                         (string-to-variable name))))
-             (translate-single body))
-          (incf ,gi)
-          (go ,gstart-tag)
-          ,gend-tag))))
+  (with-gensyms (gi glimit gstep gstart-tag gend-tag)
+    (let ((gvar (string-to-variable name)))
+      `(let ((,gi ,(translate-single init))
+             (,glimit ,(translate-single end))
+             (,gstep ,(translate-single step)))
+         (if (or (cl-lua.runtime:lua-false-p ,gi)
+                 (cl-lua.runtime:lua-false-p ,glimit)
+                 (cl-lua.runtime:lua-false-p ,gstep))
+             (cl-lua.runtime:runtime-error-form
+              ,(ast-filepos $ast)
+              "'for' limit must be a number")
+             (let ((,gi (- ,gi ,gstep)))
+               (tagbody
+                  ,gstart-tag
+                  (incf ,gi ,gstep)
+                  (when (or (and (<= 0 ,gstep) (< ,glimit ,gi))
+                            (and (< ,gstep 0) (< ,gi ,glimit)))
+                    (go ,gend-tag))
+                  ,(let ((*loop-end-tag* gend-tag)
+                         (*env* (extend-env-var *env* name gvar)))
+                     `(let ((,gvar ,gi))
+                        ,(translate-single body)))
+                  (go ,gstart-tag)
+                  ,gend-tag)))))))
 
 (define-translate-single (:generic-for namelist explist body)
   (let* ((vars (mapcar #'string-to-variable namelist))
