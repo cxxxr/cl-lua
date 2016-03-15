@@ -142,6 +142,14 @@
       (setf (gethash string *lua-string-cache-table*)
             (babel:string-to-octets string))))
 
+(set-dispatch-macro-character
+ #\# #\L
+ #'(lambda (stream c1 c2)
+     (declare (ignore c1 c2))
+     (let ((string (read stream t nil t)))
+       (check-type string string)
+       (string-to-lua-string string))))
+
 (defun lua-string-to-string (lua-string)
   (babel:octets-to-string lua-string))
 
