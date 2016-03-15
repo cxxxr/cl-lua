@@ -172,9 +172,7 @@
 (defun get-metamethod (x name)
   (let ((table (get-metatable x)))
     (when table
-      (lua-table-get table
-                     (string-to-lua-string
-                      (string-downcase name))))))
+      (lua-table-get table name))))
 
 (defmacro call-metamethod-or (name &rest args)
   (with-gensyms (gresult)
@@ -267,53 +265,53 @@
                (lua-type-of ,x)))))))
 
 (defun lua-add (filepos x y)
-  (arith filepos x y + :__add))
+  (arith filepos x y + #L"__add"))
 
 (declaim (inline lua-sub))
 (defun lua-sub (filepos x y)
-  (arith filepos x y - :__sub))
+  (arith filepos x y - #L"__sub"))
 
 (defun lua-mul (filepos x y)
-  (arith filepos x y * :__mul))
+  (arith filepos x y * #L"__mul"))
 
 (defun lua-div (filepos x y)
-  (arith filepos x y (lambda (a b) (float (/ a b))) :__div))
+  (arith filepos x y (lambda (a b) (float (/ a b))) #L"__div"))
 
 (defun lua-mod (filepos x y)
-  (arith filepos x y mod :__mod))
+  (arith filepos x y mod #L"__mod"))
 
 (defun lua-pow (filepos x y)
-  (arith filepos x y expt :__pow))
+  (arith filepos x y expt #L"__pow"))
 
 (defun lua-unm (filepos x)
-  (arith-unary filepos x - :__unm))
+  (arith-unary filepos x - #L"__unm"))
 
 (defun lua-idiv (filepos x y)
-  (arith filepos x y (lambda (a b) (values (floor a b))) :__idiv))
+  (arith filepos x y (lambda (a b) (values (floor a b))) #L"__idiv"))
 
 (defun lua-band (filepos x y)
-  (arith-bit filepos x y logand :__band))
+  (arith-bit filepos x y logand #L"__band"))
 
 (defun lua-bor (filepos x y)
-  (arith-bit filepos x y logior :__bor))
+  (arith-bit filepos x y logior #L"__bor"))
 
 (defun lua-bxor (filepos x y)
-  (arith-bit filepos x y logxor :__bxor))
+  (arith-bit filepos x y logxor #L"__bxor"))
 
 (defun lua-bnot (filepos x)
-  (arith-bit-unary filepos x lognot :__bnot))
+  (arith-bit-unary filepos x lognot #L"__bnot"))
 
 (defun lua-shl (filepos x y)
-  (arith-bit filepos x y (lambda (a b) (ash a (- b))) :__shl))
+  (arith-bit filepos x y (lambda (a b) (ash a (- b))) #L"__shl"))
 
 (defun lua-shr (filepos x y)
-  (arith-bit filepos x y (lambda (a b) (ash a b)) :__shr))
+  (arith-bit filepos x y (lambda (a b) (ash a b)) #L"__shr"))
 
 (defun lua-concat (filepos x y)
   (let ((x1 (cast-string x))
         (y1 (cast-string y)))
     (cond ((and x1 y1) (concatenate 'lua-string x1 y1))
-          ((call-metamethod-or :__concat x y))
+          ((call-metamethod-or #L"__concat" x y))
           (t (runtime-error-form filepos
                                  "attempt to concatenate a ~A value"
                                  (if (null x1)
@@ -325,10 +323,10 @@
     (lua-string
      (length x))
     (lua-table
-     (or (call-metamethod-or :__len x)
+     (or (call-metamethod-or #L"__len" x)
          (lua-table-len x)))
     (otherwise
-     (or (call-metamethod-or :__len x)
+     (or (call-metamethod-or #L"__len" x)
          (runtime-error-form filepos
                              "attempt to get length of a ~A value"
                              x)))))
@@ -366,7 +364,7 @@
    :fail
      (return-from lua-eq
        (lua-bool
-        (or (call-metamethod-or :__eq x y)
+        (or (call-metamethod-or #L"__eq" x y)
             +lua-false+)))))
 
 (defun lua-ne (filepos x y)
@@ -402,14 +400,14 @@
 
 (defun lua-lt (filepos x y)
   (cmp (x y < >)
-    (or (call-metamethod-or :__lt x y)
+    (or (call-metamethod-or #L"__lt" x y)
         (cmp-error filepos x y))))
 
 (declaim (inline lua-le))
 (defun lua-le (filepos x y)
   (cmp (x y <= >)
-    (or (call-metamethod-or :__le x y)
-        (lua-not filepos (call-metamethod-or :__lt y x))
+    (or (call-metamethod-or #L"__le" x y)
+        (lua-not filepos (call-metamethod-or #L"__lt" y x))
         (cmp-error filepos x y))))
 
 (defun lua-gt (filepos x y)
@@ -425,7 +423,7 @@
 
 (defun lua-index (filepos table key)
   (labels ((metamethod (table key)
-             (let ((x (get-metamethod table :__index)))
+             (let ((x (get-metamethod table #L"__index")))
                (typecase x
                  (function
                   (funcall x table key))
@@ -442,7 +440,7 @@
 
 (defun (setf lua-index) (value filepos table key)
   (labels ((metamethod (table key value)
-             (let ((x (get-metamethod table :__newindex)))
+             (let ((x (get-metamethod table #L"__newindex")))
                (typecase x
                  (function
                   (funcall x table key value))
@@ -469,7 +467,7 @@
                `(funcall ,fun ,@args)
                `(multiple-value-call ,fun ,@args)))
          (otherwise
-          (or (call-metamethod-form multiple-value-call :__call ,fun ,@args)
+          (or (call-metamethod-form multiple-value-call #L"__call" ,fun ,@args)
               (runtime-error-form ,filepos
                                   "attempt to call a ~A value"
                                   ,fun)))))))
