@@ -15,6 +15,7 @@
    :make-empty-lua-string
    :string-to-lua-string
    :lua-object-to-string
+   :lua-string-to-string
    :lua-string-to-number))
 (in-package :cl-lua.lua-object)
 

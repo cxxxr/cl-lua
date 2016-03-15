@@ -18,6 +18,9 @@
    :set-global-variable
    :make-init-env
    :get-metamethod
+   :runtime-error
+   :runtime-type-error
+   :lua-nil-p
    :lua-false-p
    :lua-not
    :lua-and
@@ -56,6 +59,7 @@
 (defvar +lua-env-name+ (make-symbol "_ENV"))
 
 (defvar *global-lua-table* (make-lua-table))
+(defvar *filepos*)
 
 (defun set-global-variable (name value)
   (check-type name lua-string)
@@ -67,11 +71,29 @@
   (let ((table (make-lua-table)))
     table))
 
-(defun runtime-error (filepos &optional string &rest args)
+(defun runtime-error-1 (filepos object)
   (error 'runtime-error
          :filepos filepos
-         :object (apply #'format nil string args)
+         :object object
          :call-stack nil))
+
+(defun runtime-error (object)
+  (runtime-error-1 *filepos* object))
+
+(defun runtime-error-form (filepos &optional string &rest args)
+  (runtime-error-1 filepos
+                   (string-to-lua-string
+                    (apply #'format nil string args))))
+
+(defun runtime-type-error (function-name arg-num expected-type got-type)
+  (runtime-error
+   (string-to-lua-string
+    (format nil
+            "bad argument #~D to ~A (~A expected, got ~A)"
+            arg-num function-name expected-type got-type))))
+
+(defun lua-nil-p (x)
+  (eq x +lua-nil+))
 
 (declaim (inline lua-false-p))
 (defun lua-false-p (x)
@@ -190,9 +212,10 @@
            (cond ((and ,gx ,gy) (,op ,gx ,gy))
                  ((call-metamethod-or ,metamethod-name ,x ,y))
                  (t
-                  (runtime-error ,filepos
-                                 "attempt to perform arithmetic on a ~A value"
-                                 (lua-type-of (if (null ,gx) ,x ,y)))))))))
+                  (runtime-error-form
+                   ,filepos
+                   "attempt to perform arithmetic on a ~A value"
+                   (lua-type-of (if (null ,gx) ,x ,y)))))))))
 
 (defmacro arith-unary (filepos x op metamethod-name)
   (check-type x symbol)
@@ -201,9 +224,9 @@
        (cond ((and ,gx) (,op ,gx))
              ((call-metamethod-or ,metamethod-name ,x))
              (t
-              (runtime-error ,filepos
-                             "attempt to perform arithmetic on a ~A value"
-                             (lua-type-of ,x)))))))
+              (runtime-error-form ,filepos
+                                  "attempt to perform arithmetic on a ~A value"
+                                  (lua-type-of ,x)))))))
 
 (defmacro arith-bit (filepos x y op metamethod-name)
   (check-type x symbol)
@@ -214,10 +237,10 @@
        (cond ((and ,gx ,gy) (,op ,gx ,gy))
              ((call-metamethod-or ,metamethod-name ,x ,y))
              ((or (not (cast-integer-p ,x)) (not (cast-integer-p ,y)))
-              (runtime-error ,filepos
-                             "number has no integer representation"))
+              (runtime-error-form ,filepos
+                                  "number has no integer representation"))
              (t
-              (runtime-error
+              (runtime-error-form
                ,filepos
                "attempt to perform between operation on a ~A value"
                (lua-type-of (if (null ,gx) ,x ,y))))))))
@@ -229,10 +252,10 @@
        (cond (,gx (,op ,gx))
              ((call-metamethod-or ,metamethod-name ,x))
              ((not (cast-integer-p ,x))
-              (runtime-error ,filepos
-                             "number has no integer representation"))
+              (runtime-error-form ,filepos
+                                  "number has no integer representation"))
              (t
-              (runtime-error
+              (runtime-error-form
                ,filepos
                "attempt to perform between operation on a ~A value"
                (lua-type-of ,x)))))))
@@ -240,6 +263,7 @@
 (defun lua-add (filepos x y)
   (arith filepos x y + :__add))
 
+(declaim (inline lua-sub))
 (defun lua-sub (filepos x y)
   (arith filepos x y - :__sub))
 
@@ -284,11 +308,11 @@
         (y1 (cast-string y)))
     (cond ((and x1 y1) (concatenate 'lua-string x1 y1))
           ((call-metamethod-or :__concat x y))
-          (t (runtime-error filepos
-                            "attempt to concatenate a ~A value"
-                            (if (null x1)
-                                (lua-type-of x)
-                                (lua-type-of y)))))))
+          (t (runtime-error-form filepos
+                                 "attempt to concatenate a ~A value"
+                                 (if (null x1)
+                                     (lua-type-of x)
+                                     (lua-type-of y)))))))
 
 (defun lua-len (filepos x)
   (typecase x
@@ -299,9 +323,9 @@
          (lua-table-len x)))
     (otherwise
      (or (call-metamethod-or :__len x)
-         (runtime-error filepos
-                        "attempt to get length of a ~A value"
-                        x)))))
+         (runtime-error-form filepos
+                             "attempt to get length of a ~A value"
+                             x)))))
 
 (defun lua-eq (filepos x y)
   (declare (ignore filepos))
@@ -365,16 +389,17 @@
          ,@fail-body)))))
 
 (defun cmp-error (filepos x y)
-  (runtime-error filepos
-                 "attempt to compare ~A with ~A"
-                 (lua-type-of x)
-                 (lua-type-of y)))
+  (runtime-error-form filepos
+                      "attempt to compare ~A with ~A"
+                      (lua-type-of x)
+                      (lua-type-of y)))
 
 (defun lua-lt (filepos x y)
   (cmp (x y < >)
     (or (call-metamethod-or :__lt x y)
         (cmp-error filepos x y))))
 
+(declaim (inline lua-le))
 (defun lua-le (filepos x y)
   (cmp (x y <= >)
     (or (call-metamethod-or :__le x y)
@@ -388,9 +413,9 @@
   (lua-le filepos y x))
 
 (defun index-error (filepos table)
-  (runtime-error filepos
-                 "attempt to index a ~A value"
-                 (lua-type-of table)))
+  (runtime-error-form filepos
+                      "attempt to index a ~A value"
+                      (lua-type-of table)))
 
 (defun lua-index (filepos table key)
   (labels ((metamethod (table key)
@@ -428,19 +453,20 @@
 
 (defmacro lua-call (filepos fun &rest args)
   (once-only (fun)
-    `(typecase ,fun
-       (function
-        ,(if (or (null args)
-                 (atom (last1 args))
-                 (and (eq 'values (car (last1 args)))
-                      (length=1 (cdr (last1 args)))))
-             `(funcall ,fun ,@args)
-             `(multiple-value-call ,fun ,@args)))
-       (otherwise
-        (or (call-metamethod-form multiple-value-call :__call ,fun ,@args)
-            (runtime-error ,filepos
-                           "attempt to call a ~A value"
-                           ,fun))))))
+    `(let ((*filepos* ,filepos))
+       (typecase ,fun
+         (function
+          ,(if (or (null args)
+                   (atom (last1 args))
+                   (and (eq 'values (car (last1 args)))
+                        (length=1 (cdr (last1 args)))))
+               `(funcall ,fun ,@args)
+               `(multiple-value-call ,fun ,@args)))
+         (otherwise
+          (or (call-metamethod-form multiple-value-call :__call ,fun ,@args)
+              (runtime-error-form ,filepos
+                                  "attempt to call a ~A value"
+                                  ,fun)))))))
 
 (defmacro with-runtime (() &body body)
   `(let ((,+lua-env-name+ *global-lua-table*))
