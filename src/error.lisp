@@ -107,7 +107,7 @@
      (report condition
              stream
              (format nil
-                     "unexpected token ~A"
+                     "unexpected token '~A'"
                      (lua-object-to-string
                       (syntax-error-value condition)))))))
 

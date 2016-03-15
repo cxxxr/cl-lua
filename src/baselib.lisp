@@ -61,7 +61,7 @@
   (let ((f (get-metamethod v #L"__tostring")))
     (if f
         (funcall f v)
-        (write-to-string v :case :downcase :escape nil :readably nil))))
+        (lua-object-to-string v))))
 
 (define-lua-function "tostring" (v)
   (tostring v))

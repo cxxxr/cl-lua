@@ -156,7 +156,7 @@
 (defun lua-object-to-string (x)
   (typecase x
     (lua-string
-     (prin1-to-string (lua-string-to-string x)))
+     (princ-to-string (lua-string-to-string x)))
     (t
      (princ-to-string x))))
 
