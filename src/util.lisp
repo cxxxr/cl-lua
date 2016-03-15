@@ -7,6 +7,7 @@
   (:export
    :unicode-to-utf8
    :length=1
+   :last1
    :with-accumulate
    :collect
    :with-regex-scans
@@ -36,9 +37,14 @@
 	     ((<= #x800 code #xffff) 3)
 	     ((<= #x10000 code #x1fffff) 4)))))
 
+(declaim (inline length=1))
 (defun length=1 (list)
   (and (consp list)
        (null (cdr list))))
+
+(declaim (inline last1))
+(defun last1 (list)
+  (car (last list)))
 
 (defmacro with-accumulate (() &body body)
   (with-gensyms (gacc)

@@ -431,7 +431,7 @@
     `(typecase ,fun
        (function
         ,(if (or (null args)
-                 (atom (car (last args))))
+                 (atom (last1 args)))
              `(funcall ,fun ,@args)
              `(multiple-value-call ,fun ,@args)))
        (otherwise

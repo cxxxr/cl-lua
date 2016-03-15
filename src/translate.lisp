@@ -119,7 +119,7 @@
               ,@(mapcar #'(lambda (arg)
                             `(values ,(translate-single arg)))
                         (butlast explist))
-              ,(translate-single (car (last explist))))))))
+              ,(translate-single (last1 explist)))))))
 
 (define-translate-single (:label name)
   (env-find *label-env* name))
@@ -388,7 +388,7 @@
         ,@(mapcar #'(lambda (arg)
                       `(values ,(translate-single arg)))
                   (butlast args))
-        ,(translate-single (car (last args))))))
+        ,(translate-single (last1 args)))))
 
 (define-translate-single (:call-method prefix name args)
   (with-gensyms (gvalue)
