@@ -1,4 +1,3 @@
-(in-package :cl-user)
 (defpackage :cl-lua.convert
   (:use :cl :cl-lua.ast)
   (:import-from

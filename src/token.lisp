@@ -1,4 +1,3 @@
-(in-package :cl-user)
 (defpackage :cl-lua.token
   (:use :cl :cl-lua.filepos)
   (:export

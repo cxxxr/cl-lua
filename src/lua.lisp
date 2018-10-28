@@ -1,4 +1,3 @@
-(in-package :cl-user)
 (defpackage :cl-lua
   (:use :cl)
   (:export
