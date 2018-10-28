@@ -1,4 +1,3 @@
-(in-package :cl-user)
 (defpackage :cl-lua.libutil
   (:use :cl :cl-lua.util :cl-lua.lua-object :cl-lua.runtime)
   (:export :define-lua-function))

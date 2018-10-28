@@ -1,4 +1,3 @@
-(in-package :cl-user)
 (defpackage :cl-lua.ast
   (:use :cl :cl-lua.filepos)
   (:import-from
