@@ -319,7 +319,7 @@
                                            start-linum))))))
 
 (defun try-scan-number (lexer)
-  (when (lexer-scan-regex lexer "^\(?:\\.[0-9]|[0-9]\)")
+  (when (lexer-scan-regex lexer "^(?:\\.[0-9]|[0-9])")
     (multiple-value-bind (value end)
         (lua-parse-number (lexer-line lexer)
                           :start (lexer-column lexer)
