@@ -7,4 +7,6 @@
   (cl-lua-test.lexer:test))
 (prove:subtest "parser"
   (cl-lua-test.parser:test))
+(prove:subtest "execute"
+  (cl-lua-test.execute:test))
 (prove:finalize)

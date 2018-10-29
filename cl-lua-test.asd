@@ -4,4 +4,5 @@
 		:serial t
 		:components ((:file "lexer")
                              (:file "parser")
+                             (:file "execute")
                              (:file "lua")))))
