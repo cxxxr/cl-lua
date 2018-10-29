@@ -297,25 +297,25 @@
     (when s
       (let ((start-linum (lexer-linum lexer))
             (lua-string (make-empty-lua-string)))
-	(if (= e (length (lexer-line lexer)))
+        (if (= e (length (lexer-line lexer)))
             (next-line lexer)
             (setf (lexer-column lexer) e))
-	(scan-long-string lexer
-			  (- e s 2)
-			  (lambda (str newline-p)
+        (scan-long-string lexer
+                          (- e s 2)
+                          (lambda (str newline-p)
                             (setf lua-string
                                   (concatenate 'lua-string
                                                lua-string
                                                (string-to-lua-string str)))
-			    (when newline-p
+                            (when newline-p
                               (setf lua-string
                                     (concatenate 'lua-string
                                                  lua-string
                                                  (string-to-lua-string
                                                   (string #\newline))))))
                           'unfinished-long-string-error)
-	(make-token lua-string
-		    :tag "string"
+        (make-token (lua-string-to-cached-lua-string lua-string)
+                    :tag "string"
                     :filepos (make-filepos (lexer-stream-info lexer)
                                            start-linum))))))
 
