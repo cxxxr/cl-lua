@@ -1,4 +1,3 @@
-(in-package :cl-user)
 (defpackage :cl-lua-test
   (:use :cl))
 (in-package :cl-lua-test)

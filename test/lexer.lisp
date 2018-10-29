@@ -1,4 +1,3 @@
-(in-package :cl-user)
 (defpackage :cl-lua-test.lexer
   (:use :cl :cl-lua.lexer :cl-lua.token :cl-lua.filepos)
   (:export :test))

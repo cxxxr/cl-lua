@@ -1,4 +1,3 @@
-(in-package :cl-user)
 (defpackage :cl-lua-test.parser
   (:use :cl :cl-lua.parser :cl-lua.lexer :cl-lua.ast)
   (:export :test))
