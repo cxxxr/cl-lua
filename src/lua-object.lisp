@@ -12,6 +12,7 @@
    :lua-parse-number
    :lua-string
    :make-empty-lua-string
+   :lua-string-to-cached-lua-string
    :string-to-lua-string
    :lua-object-to-string
    :lua-string-to-string
@@ -134,6 +135,9 @@
 
 (defun make-empty-lua-string ()
   (string-to-lua-string ""))
+
+(defun lua-string-to-cached-lua-string (lua-string)
+  (string-to-lua-string (babel:octets-to-string lua-string)))
 
 (defun string-to-lua-string (string)
   (check-type string string)

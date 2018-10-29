@@ -204,7 +204,8 @@
                     ((char= c quote-char)
                      (incf (lexer-column lexer))
                      (return-from try-scan-string
-                       (make-token (coerce (nreverse chars) 'lua-string)
+                       (make-token (lua-string-to-cached-lua-string
+                                    (coerce (nreverse chars) 'lua-string))
                                    :tag "string"
                                    :filepos (make-filepos
                                              (lexer-stream-info lexer)
