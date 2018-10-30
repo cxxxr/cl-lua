@@ -2,7 +2,7 @@
   (:use :cl))
 (in-package :cl-lua-test)
 
-(prove:plan 2)
+(prove:plan 3)
 (prove:subtest "lexer"
   (cl-lua-test.lexer:test))
 (prove:subtest "parser"
