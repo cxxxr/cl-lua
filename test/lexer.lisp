@@ -167,7 +167,7 @@
       (make-token 3.1415925 :tag "number" :filepos (make-filepos nil 1))))
 
 (defun test ()
-  (prove:plan 136)
+  (prove:plan nil)
   (skip-space-and-comment-test)
   (operators-test)
   (word-test)

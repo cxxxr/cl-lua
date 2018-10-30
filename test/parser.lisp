@@ -9,7 +9,7 @@
             :test test))
 
 (defun test ()
-  (prove:plan 56)
+  (prove:plan nil)
   (is "return"
       '(:block ((:return nil))))
   (is "return 1"
