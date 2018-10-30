@@ -10,13 +10,17 @@
    :lua-table-put-if-exists
    :lua-table-len
    :lua-parse-number
+   :octets
    :lua-string
+   :lua-string-octets
    :make-empty-lua-string
-   :lua-string-to-cached-lua-string
+   :cache-lua-string
+   :octets-to-lua-string
    :string-to-lua-string
    :lua-object-to-string
    :lua-string-to-string
-   :lua-string-to-number))
+   :lua-string-to-number
+   :lua-string-concat))
 (in-package :cl-lua.lua-object)
 
 (defstruct (lua-table (:constructor make-lua-table-internal))
@@ -128,22 +132,30 @@
            :end end
            :junk-allowed junk-allowed))
 
-(deftype lua-string (&optional n)
+(deftype octets (&optional n)
   `(simple-array (unsigned-byte 8) (,n)))
+
+(defstruct lua-string octets)
+
+(defmethod print-object ((object lua-string) stream)
+  (format stream "#L~S" (babel:octets-to-string (lua-string-octets object))))
 
 (defvar *lua-string-cache-table* (make-hash-table :test #'equal))
 
 (defun make-empty-lua-string ()
   (string-to-lua-string ""))
 
-(defun lua-string-to-cached-lua-string (lua-string)
-  (string-to-lua-string (babel:octets-to-string lua-string)))
+(defun cache-lua-string (lua-string)
+  (octets-to-lua-string (lua-string-octets lua-string)))
+
+(defun octets-to-lua-string (octets)
+  (string-to-lua-string (babel:octets-to-string octets)))
 
 (defun string-to-lua-string (string)
   (check-type string string)
   (or (gethash string *lua-string-cache-table*)
       (setf (gethash string *lua-string-cache-table*)
-            (babel:string-to-octets string))))
+            (make-lua-string :octets (babel:string-to-octets string)))))
 
 (set-dispatch-macro-character
  #\# #\L
@@ -151,10 +163,10 @@
      (declare (ignore c1 c2))
      (let ((string (read stream t nil t)))
        (check-type string string)
-       (string-to-lua-string string))))
+       `(string-to-lua-string ,string))))
 
 (defun lua-string-to-string (lua-string)
-  (babel:octets-to-string lua-string))
+  (babel:octets-to-string (lua-string-octets lua-string)))
 
 (defun lua-object-to-string (x)
   (typecase x
@@ -167,3 +179,10 @@
   (lua-parse-number
    (string-trim '(#\space #\tab)
                 (lua-string-to-string lua-string))))
+
+(defun lua-string-concat (x y)
+  (declare (lua-string x y))
+  (octets-to-lua-string
+   (concatenate 'octets
+                (lua-string-octets x)
+                (lua-string-octets y))))

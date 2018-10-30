@@ -310,7 +310,7 @@
 (defun lua-concat (filepos x y)
   (let ((x1 (cast-string x))
         (y1 (cast-string y)))
-    (cond ((and x1 y1) (concatenate 'lua-string x1 y1))
+    (cond ((and x1 y1) (lua-string-concat x1 y1))
           ((call-metamethod-or #L"__concat" x y))
           (t (runtime-error-form filepos
                                  "attempt to concatenate a ~A value"
@@ -321,7 +321,7 @@
 (defun lua-len (filepos x)
   (typecase x
     (lua-string
-     (length x))
+     (length (lua-string-octets x)))
     (lua-table
      (or (call-metamethod-or #L"__len" x)
          (lua-table-len x)))
@@ -345,12 +345,14 @@
          (lua-string
           (typecase y
             (lua-string
-             (let ((len (length x)))
-               (if (= len (length y))
-                   (dotimes (i len +lua-true+)
-                     (unless (= (aref x i) (aref y i))
-                       (return-from lua-eq +lua-false+)))
-                   +lua-false+)))
+             (let ((x (lua-string-octets x))
+                   (y (lua-string-octets y)))
+               (let ((len (length x)))
+                 (if (= len (length y))
+                     (dotimes (i len +lua-true+)
+                       (unless (= (aref x i) (aref y i))
+                         (return-from lua-eq +lua-false+)))
+                     +lua-false+))))
             (otherwise
              (go :fail))))
          (otherwise
@@ -381,14 +383,16 @@
      (lua-string
       (typecase ,y
         (lua-string
-         (let ((len1 (length ,x))
-               (len2 (length ,y)))
-           (dotimes (i (min len1 len2)
-                       (lua-bool (,op1 len1 len2)))
-             (let ((e1 (aref ,x i))
-                   (e2 (aref ,y i)))
-               (cond ((,op1 e1 e2) (return +lua-true+))
-                     ((,op2 e1 e2) (return +lua-false+)))))))
+         (let ((x (lua-string-octets x))
+               (y (lua-string-octets y)))
+           (let ((len1 (length ,x))
+                 (len2 (length ,y)))
+             (dotimes (i (min len1 len2)
+                         (lua-bool (,op1 len1 len2)))
+               (let ((e1 (aref ,x i))
+                     (e2 (aref ,y i)))
+                 (cond ((,op1 e1 e2) (return +lua-true+))
+                       ((,op2 e1 e2) (return +lua-false+))))))))
         (otherwise
          ,@fail-body)))))
 

@@ -204,8 +204,8 @@
                     ((char= c quote-char)
                      (incf (lexer-column lexer))
                      (return-from try-scan-string
-                       (make-token (lua-string-to-cached-lua-string
-                                    (coerce (nreverse chars) 'lua-string))
+                       (make-token (octets-to-lua-string
+                                    (coerce (nreverse chars) 'octets))
                                    :tag "string"
                                    :filepos (make-filepos
                                              (lexer-stream-info lexer)
@@ -304,17 +304,17 @@
                           (- e s 2)
                           (lambda (str newline-p)
                             (setf lua-string
-                                  (concatenate 'lua-string
-                                               lua-string
-                                               (string-to-lua-string str)))
+                                  (lua-string-concat
+                                   lua-string
+                                   (string-to-lua-string str)))
                             (when newline-p
                               (setf lua-string
-                                    (concatenate 'lua-string
-                                                 lua-string
-                                                 (string-to-lua-string
-                                                  (string #\newline))))))
+                                    (lua-string-concat
+                                     lua-string
+                                     (string-to-lua-string
+                                      (string #\newline))))))
                           'unfinished-long-string-error)
-        (make-token (lua-string-to-cached-lua-string lua-string)
+        (make-token (cache-lua-string lua-string)
                     :tag "string"
                     :filepos (make-filepos (lexer-stream-info lexer)
                                            start-linum))))))

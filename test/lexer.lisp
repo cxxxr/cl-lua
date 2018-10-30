@@ -77,30 +77,30 @@
                     "'foo\\061\\062\\063bar'"
                     "'\\u{3042}\\u{3043}\\u{3044}'"
                     "'あいうえお'"))
-      (MAKE-TOKEN (BABEL:STRING-TO-OCTETS "abc") :TAG "string" :filepos (make-filepos nil 1))
-      (MAKE-TOKEN (BABEL:STRING-TO-OCTETS "abc") :TAG "string" :filepos (make-filepos nil 3))
+      (MAKE-TOKEN (cl-lua.lua-object:string-to-lua-string "abc") :TAG "string" :filepos (make-filepos nil 1))
+      (MAKE-TOKEN (cl-lua.lua-object:string-to-lua-string "abc") :TAG "string" :filepos (make-filepos nil 3))
       (MAKE-TOKEN
-       (BABEL:STRING-TO-OCTETS
+       (cl-lua.lua-object:string-to-lua-string
         (COERCE
          (LIST #\Bel #\Backspace #\Page #\Newline #\Return #\Tab #\Vt #\\ #\" #\')
          'STRING))
        :TAG "string" :filepos (make-filepos nil 4))
-      (MAKE-TOKEN #(102 111 111 98 97 114) :TAG "string" :filepos (make-filepos nil 4))
-      (MAKE-TOKEN #(98 97 114) :TAG "string" :filepos (make-filepos nil 5))
-      (MAKE-TOKEN #(98 97 114) :TAG "string" :filepos (make-filepos nil 6))
-      (MAKE-TOKEN (BABEL:STRING-TO-OCTETS (COERCE (LIST #\Bel #\a #\Bel) 'STRING))
+      (MAKE-TOKEN (cl-lua.lua-object:string-to-lua-string "foobar") :TAG "string" :filepos (make-filepos nil 4))
+      (MAKE-TOKEN (cl-lua.lua-object:string-to-lua-string "bar") :TAG "string" :filepos (make-filepos nil 5))
+      (MAKE-TOKEN (cl-lua.lua-object:string-to-lua-string "bar") :TAG "string" :filepos (make-filepos nil 6))
+      (MAKE-TOKEN (cl-lua.lua-object:string-to-lua-string (COERCE (LIST #\Bel #\a #\Bel) 'STRING))
                   :TAG "string" :filepos (make-filepos nil 7))
-      (MAKE-TOKEN (BABEL:STRING-TO-OCTETS "abc__") :TAG "string" :filepos (make-filepos nil 7))
-      (MAKE-TOKEN (BABEL:STRING-TO-OCTETS "a1") :TAG "string" :filepos (make-filepos nil 7))
-      (MAKE-TOKEN (BABEL:STRING-TO-OCTETS "1a1") :TAG "string" :filepos (make-filepos nil 7))
-      (MAKE-TOKEN (BABEL:STRING-TO-OCTETS "=>?") :TAG "string" :filepos (make-filepos nil 7))
-      (MAKE-TOKEN (BABEL:STRING-TO-OCTETS "foo=>?bar") :TAG "string" :filepos (make-filepos nil 7))
+      (MAKE-TOKEN (cl-lua.lua-object:string-to-lua-string "abc__") :TAG "string" :filepos (make-filepos nil 7))
+      (MAKE-TOKEN (cl-lua.lua-object:string-to-lua-string "a1") :TAG "string" :filepos (make-filepos nil 7))
+      (MAKE-TOKEN (cl-lua.lua-object:string-to-lua-string "1a1") :TAG "string" :filepos (make-filepos nil 7))
+      (MAKE-TOKEN (cl-lua.lua-object:string-to-lua-string "=>?") :TAG "string" :filepos (make-filepos nil 7))
+      (MAKE-TOKEN (cl-lua.lua-object:string-to-lua-string "foo=>?bar") :TAG "string" :filepos (make-filepos nil 7))
       (MAKE-TOKEN
-       (BABEL:STRING-TO-OCTETS (MAP 'STRING #'CODE-CHAR (VECTOR 12354 12355 12356)))
+       (cl-lua.lua-object:string-to-lua-string (MAP 'STRING #'CODE-CHAR (VECTOR 12354 12355 12356)))
        :TAG "string" :filepos (make-filepos nil 7))
-      (make-token (babel:string-to-octets "あいうえお") :tag "string" :filepos (make-filepos nil 7)))
+      (make-token (cl-lua.lua-object:string-to-lua-string "あいうえお") :tag "string" :filepos (make-filepos nil 7)))
   (is (make-lines "'foo\\" "bar'")
-      (make-token (babel:string-to-octets (concatenate 'string
+      (make-token (cl-lua.lua-object:string-to-lua-string (concatenate 'string
                                                        "foo"
                                                        (string #\newline)
                                                        "bar"))
@@ -108,7 +108,7 @@
 
 (defun long-string-test ()
   (is "[[abcd]]"
-      (make-token #(97 98 99 100) :tag "string" :filepos (make-filepos nil 1)))
+      (make-token (cl-lua.lua-object:string-to-lua-string "abcd") :tag "string" :filepos (make-filepos nil 1)))
   (is (make-lines ""
                   ""
                   "[["
@@ -123,9 +123,10 @@
                   "]====]"
                   ""
                   "]===]")
-      (make-token #(97 98 99 10 120 121 122) :tag "string" :filepos (make-filepos nil 3))
-      (make-token #(120) :tag "string" :filepos (make-filepos nil 7))
-      (make-token (map 'vector #'char-code (make-lines "abcdefg" "foooooooo" "]==]" "]====]" ""))
+      (make-token (cl-lua.lua-object:string-to-lua-string "abc
+xyz") :tag "string" :filepos (make-filepos nil 3))
+      (make-token (cl-lua.lua-object:string-to-lua-string "x") :tag "string" :filepos (make-filepos nil 7))
+      (make-token (cl-lua.lua-object:octets-to-lua-string (coerce (map 'vector #'char-code (make-lines "abcdefg" "foooooooo" "]==]" "]====]" "")) 'cl-lua.lua-object:octets))
                   :tag "string"
                   :filepos (make-filepos nil 8))))
 
