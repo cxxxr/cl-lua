@@ -23,4 +23,4 @@
 
 (defun run-string (string)
   (with-input-from-string (in string)
-    (run-stream in nil)))
+    (run-stream in "")))
