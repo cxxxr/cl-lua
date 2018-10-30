@@ -8,10 +8,8 @@
 
 (define-lua-function "assert" (v &rest args)
   (when (lua-false-p v)
-    (let ((message (car args)))
-      (runtime-error (if (lua-nil-p message)
-                         #L"assertion failed!"
-                         message))))
+    (let ((message (if args (first args) #L"assertion failed!")))
+      (runtime-error message)))
   (apply #'values (cons v args)))
 
 (define-lua-function "collectgarbage" (opt arg))
